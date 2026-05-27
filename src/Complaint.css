@@ -1,0 +1,225 @@
+/* --- จัดโครงสร้างหลัก (สำคัญมาก: ทำให้ Sidebar อยู่ข้างๆ เนื้อหา) --- */
+.complaint-container {
+  display: flex;       /* สั่งให้ลูกน้อง (Sidebar + Main) เรียงแนวนอน */
+  width: 100%;
+  height: 100vh;       /* เต็มความสูงหน้าจอ */
+  background-color: #f8fafc; /* สีพื้นหลังฝั่งขวา */
+  overflow: hidden;    /* ซ่อน Scrollbar ของตัวแม่ */
+}
+
+/* --- ตกแต่งไส้ใน Sidebar (ส่วนหัว) --- */
+.left-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* เส้นขีดบางๆ */
+}
+
+.left-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: white; /* บังคับตัวหนังสือสีขาว */
+}
+
+.left-header p {
+  font-size: 13px;
+  color: #94a3b8; /* สีเทาอมฟ้า */
+  margin: 0;
+}
+
+/* --- ตกแต่งเมนู (ปุ่มกด) --- */
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* ระยะห่างระหว่างปุ่ม */
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  color: #94a3b8;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+/* เอฟเฟกต์ตอนชี้เมาส์ หรือปุ่มที่ Active */
+.nav-item:hover, .nav-item.active {
+  background-color: #3b82f6; /* สีฟ้า */
+  color: white;
+}
+
+/* --- ตกแต่ง Main Content (ฝั่งขวา) --- */
+.main-body {
+  flex: 1;             /* ขยายให้เต็มพื้นที่ที่เหลือ */
+  overflow-y: auto;    /* ให้เลื่อน Scroll ได้เฉพาะฝั่งนี้ */
+  padding: 30px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 5px;
+}
+
+.page-header p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+/* --- ส่วน Filter Bar --- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.input-with-icon {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.input-with-icon input {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin-left: 8px;
+  width: 100%;
+}
+
+.dropdowns select {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* --- ตารางข้อมูล --- */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+th {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* --- ป้ายสถานะ --- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.pending { background: #fff7ed; color: #c2410c; }
+.status-badge.progress { background: #eff6ff; color: #1d4ed8; }
+.status-badge.done { background: #f0fdf4; color: #15803d; }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* --- ปุ่มจัดการ --- */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.btn-icon:hover { background: #f1f5f9; color: #3b82f6; }
+.btn-icon.delete:hover { background: #fef2f2; color: #ef4444; }
+
+.category-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* --- สไตล์สำหรับโหมดแก้ไข --- */
+.editing-row {
+    background-color: #f0f9ff; /* เปลี่ยนสีพื้นหลังแถวที่กำลังแก้ */
+}
+
+.edit-input, .edit-select {
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    width: 90%; /* ให้เกือบเต็มช่อง */
+    font-size: 13px;
+}
+
+.edit-select {
+    cursor: pointer;
+}
+
+/* ปรับขนาดปุ่มตอนแก้ไข */
+.btn-icon.save, .btn-icon.cancel {
+    padding: 6px;
+}
+.btn-icon.save:hover { background-color: #dcfce7; }
+.btn-icon.cancel:hover { background-color: #fee2e2; }
+
+@media screen and (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrapper, .input-with-icon {
+    max-width: 100%;
+  }
+}

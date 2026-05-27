@@ -1,0 +1,53 @@
+.add-device-hint {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.add-device-code {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.add-device-warn {
+  margin-top: 6px;
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.add-device-required-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.add-device-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-weight: 800;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.add-device-spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-device-spec-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-device-icon-btn {
+  padding: 10px 12px;
+}
+
+.add-device-add-row {
+  justify-content: center;
+}
