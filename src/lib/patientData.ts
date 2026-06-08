@@ -29,36 +29,6 @@ const PATIENTS_SHEET   = 'patients';
 const TREATMENTS_SHEET = 'treatments';
 
 const isMockMode = () => !SPREADSHEET_ID || !API_KEY;
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const MOCK_PATIENTS: Patient[] = [
-  {
-    id: 'PT-001', hn: 'HN-2024-001',
-    first_name: 'สมชาย', last_name: 'ใจดี', birth_date: '1965-03-12', gender: 'ชาย',
-    phone: '081-234-5678', emergency_contact: 'สมหญิง ใจดี', emergency_phone: '081-234-5679',
-    address: '123 ซอยสุขสันต์ หมู่ 3', subdistrict: 'พลูตาหลวง', district: 'สัตหีบ',
-    lat: 12.7489, lng: 100.9614, conditions: ['เบาหวาน', 'ความดันโลหิตสูง'],
-    blood_type: 'A+', allergies: 'ยาเพนิซิลิน', status: 'active',
-    treatments: [{ id: 'T-001', patient_id: 'PT-001', date: '2024-06-01', doctor: 'นพ.วิชัย สุขสม', diagnosis: 'ติดตามเบาหวาน', note: 'HbA1c 7.2', next_visit: '2024-09-01' }],
-  },
-  {
-    id: 'PT-002', hn: 'HN-2024-002',
-    first_name: 'มาลี', last_name: 'รักสุขภาพ', birth_date: '1978-11-25', gender: 'หญิง',
-    phone: '089-876-5432', emergency_contact: 'วิชัย รักสุขภาพ', emergency_phone: '089-876-5433',
-    address: '45 ถนนพลูตาหลวง', subdistrict: 'พลูตาหลวง', district: 'สัตหีบ',
-    lat: 12.7512, lng: 100.9589, conditions: ['โรคหัวใจ'],
-    blood_type: 'O+', allergies: '-', status: 'active', treatments: [],
-  },
-  {
-    id: 'PT-003', hn: 'HN-2024-003',
-    first_name: 'บุญมี', last_name: 'สุขใจ', birth_date: '1942-09-30', gender: 'ชาย',
-    phone: '065-333-4444', emergency_contact: 'บุปผา สุขใจ', emergency_phone: '065-333-4445',
-    address: '15 ซอยบ้านพัก ม.2', subdistrict: 'พลูตาหลวง', district: 'สัตหีบ',
-    lat: 12.7470, lng: 100.9630, conditions: ['ความดันโลหิตสูง', 'โรคไต', 'เบาหวาน'],
-    blood_type: 'A-', allergies: 'Sulfa drugs', status: 'critical', treatments: [],
-  },
-];
-
 // ─── JWT / OAuth2 ─────────────────────────────────────────────────────────────
 async function getAccessToken(): Promise<string> {
   if (!SA_EMAIL || !SA_KEY) throw new Error('ยังไม่ได้ตั้งค่า VITE_GOOGLE_SA_EMAIL / VITE_GOOGLE_SA_KEY');
