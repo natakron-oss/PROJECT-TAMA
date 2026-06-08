@@ -127,7 +127,7 @@ export default function PatientPage() {
           </div>
           <div>
             <div className="ps-brand-name">ระบบผู้ป่วย</div>
-            <div className="ps-brand-sub">เทศบาลตำบลพลูตาหลวง</div>
+            <div className="ps-brand-sub">เทศบาลตำบลสันผักหวาน</div>
           </div>
         </div>
 

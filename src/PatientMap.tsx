@@ -22,7 +22,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const MAP_CENTER: [number, number] = [12.7489, 100.9614];
+const MAP_CENTER: [number, number] = [18.7060, 98.9510];
 const MAP_ZOOM = 14;
 
 interface PatientMapProps {
@@ -42,9 +42,13 @@ export default function PatientMap({
   const mapRef          = useRef<L.Map | null>(null);
   const markersRef      = useRef<Map<string, L.Marker>>(new Map());
   const tempMarkerRef   = useRef<L.Marker | null>(null);
-  const addModeRef      = useRef(false); // ref เพื่อให้ click handler อ่านค่าปัจจุบันได้
+  const addModeRef         = useRef(false); // ref เพื่อให้ click handler อ่านค่าปัจจุบันได้
+  const onSelectPatientRef = useRef(onSelectPatient); // ป้องกัน stale closure
 
   const [addMode, setAddMode] = useState(false);
+
+  // sync ref ทุกครั้งที่ prop เปลี่ยน
+  useEffect(() => { onSelectPatientRef.current = onSelectPatient; }, [onSelectPatient]);
 
   // ─── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -196,14 +200,20 @@ export default function PatientMap({
       const existing = markersRef.current.get(pt.id);
       if (existing) {
         existing.setIcon(icon);
-        existing.setPopup(popup);
+        existing.bindPopup(popup);
+        existing.off('click');
+        existing.on('click', () => {
+          if (addModeRef.current) return;
+          onSelectPatientRef.current(pt);
+          existing.openPopup();
+        });
       } else {
         const marker = L.marker([pt.lat, pt.lng], { icon })
           .bindPopup(popup)
           .addTo(map);
         marker.on('click', () => {
           if (addModeRef.current) return; // ไม่ select ถ้าอยู่ใน add mode
-          onSelectPatient(pt);
+          onSelectPatientRef.current(pt);
           marker.openPopup();
         });
         markersRef.current.set(pt.id, marker);
@@ -229,7 +239,7 @@ export default function PatientMap({
 
       {/* แถบบอกสถานะ add mode */}
       {addMode && (
-        <div className="pt-map-addmode-banner">
+        <div className="pt-map-addmode-banner" style={{ left: 'calc(50% - 140px)', transform: 'none' }}>
           <span>📍 คลิกบนแผนที่เพื่อเลือกตำแหน่งบ้านผู้ป่วย</span>
           <button
             className="pt-map-addmode-cancel"
@@ -241,7 +251,7 @@ export default function PatientMap({
       )}
 
       {/* Sidebar */}
-      <div className="pt-map-sidebar">
+      <div className="pt-map-sidebar pt-map-sidebar-right">
         <div className="pt-map-sidebar-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <MapPin size={15} color="#2563eb" />

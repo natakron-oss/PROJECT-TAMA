@@ -54,7 +54,7 @@ export default function PatientDashboard({ patients, onSelectPatient, onAddPatie
       <div className="pt-page-header">
         <div>
           <h1 className="pt-page-title">📊 ภาพรวมระบบผู้ป่วย</h1>
-          <p className="pt-page-sub">เทศบาลตำบลพลูตาหลวง — ข้อมูล ณ วันนี้</p>
+          <p className="pt-page-sub">เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
         </div>
         <button className="pt-btn pt-btn-primary" onClick={onAddPatient}>
           + เพิ่มผู้ป่วยใหม่
