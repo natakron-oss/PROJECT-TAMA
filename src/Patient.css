@@ -1112,6 +1112,23 @@ html, body, #root {
   transition: background 0.15s;
 }
 
+/* input พิกัดผิด */
+.pt-input-error {
+  border-color: #ef4444 !important;
+  background: #fff5f5;
+}
+
+/* hint ใต้ช่องพิกัด */
+.pt-coord-hint {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #fff5f5;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
 .pt-map-addmode-cancel:hover { background: #dc2626; }
 
 /* ปุ่มเพิ่มใน sidebar แผนที่ */

@@ -29,8 +29,8 @@ const EMPTY_FORM: NewPatientInput = {
   allergies: '',
   conditions: [],
   status: 'active',
-  lat: 12.7489,
-  lng: 100.9614,
+  lat: 0,
+  lng: 0,
 };
 
 export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, initialLat, initialLng }: PatientFormModalProps) {
@@ -38,6 +38,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
   const [condInput, setCondInput] = useState('');
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+  const [coordError, setCoordError] = useState(false);
 
   const isEdit = Boolean(editTarget);
 
@@ -73,6 +74,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
     }
     setCondInput('');
     setError('');
+    setCoordError(false);
     setSaving(false);
   }, [isOpen, editTarget]);
 
@@ -105,6 +107,14 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
       setError('กรุณากรอกเบอร์โทร');
       return;
     }
+    const latValid = isFinite(form.lat) && form.lat >= -90  && form.lat <= 90  && form.lat !== 0;
+    const lngValid = isFinite(form.lng) && form.lng >= -180 && form.lng <= 180 && form.lng !== 0;
+    if (!latValid || !lngValid) {
+      setCoordError(true);
+      setError('กรุณากรอกละติจูดและลองจิจูดให้ถูกต้อง (lat: -90 ถึง 90, lng: -180 ถึง 180)');
+      return;
+    }
+    setCoordError(false);
     try {
       setSaving(true);
       setError('');
@@ -225,14 +235,37 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
           </div>
           <div className="pt-form-row">
             <div className="pt-form-group">
-              <label className="pt-label">ละติจูด</label>
-              <input className="pt-input" type="number" step="0.0001" value={form.lat} onChange={(e) => set('lat', parseFloat(e.target.value) || 0)} />
+              <label className="pt-label">
+                ละติจูด <span className="pt-req">*</span>
+              </label>
+              <input
+                className={`pt-input${coordError && (form.lat === 0 || !isFinite(form.lat) || form.lat < -90 || form.lat > 90) ? ' pt-input-error' : ''}`}
+                type="number"
+                step="0.0001"
+                value={form.lat}
+                onChange={(e) => { set('lat', parseFloat(e.target.value) || 0); setCoordError(false); setError(''); }}
+                placeholder="เช่น 12.7489"
+              />
             </div>
             <div className="pt-form-group">
-              <label className="pt-label">ลองจิจูด</label>
-              <input className="pt-input" type="number" step="0.0001" value={form.lng} onChange={(e) => set('lng', parseFloat(e.target.value) || 0)} />
+              <label className="pt-label">
+                ลองจิจูด <span className="pt-req">*</span>
+              </label>
+              <input
+                className={`pt-input${coordError && (form.lng === 0 || !isFinite(form.lng) || form.lng < -180 || form.lng > 180) ? ' pt-input-error' : ''}`}
+                type="number"
+                step="0.0001"
+                value={form.lng}
+                onChange={(e) => { set('lng', parseFloat(e.target.value) || 0); setCoordError(false); setError(''); }}
+                placeholder="เช่น 100.9614"
+              />
             </div>
           </div>
+          {coordError && (
+            <div className="pt-coord-hint">
+              📍 กรุณาระบุพิกัดที่ถูกต้อง — สามารถคลิกบนแผนที่เพื่อรับพิกัดอัตโนมัติได้
+            </div>
+          )}
 
           {/* ─── โรคประจำตัว ──────────────────────────────────────────── */}
           <div className="pt-form-section-title">โรคประจำตัว</div>
