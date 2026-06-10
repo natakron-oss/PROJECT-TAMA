@@ -27,9 +27,19 @@ const NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string }[] 
   { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
 ];
 
-export default function PatientPage() {
+interface PatientPageProps {
+  onLogout?: () => void;
+  onLogin?: () => void;   // เพิ่ม
+  currentUser?: string;
+  isLoggedIn?: boolean;   // เพิ่ม
+}
+
+export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn }: PatientPageProps) {
   const [subPage, setSubPage] = useState<PatientSubPage>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
+
+  // Guard: ป้องกัน undefined
+  const safePatients = patients ?? [];
   const [loading, setLoading] = useState(true);
 
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -150,20 +160,22 @@ export default function PatientPage() {
         <div className="ps-sidebar-footer">
           <div className="ps-footer-stat">
             <span>ผู้ป่วยทั้งหมด</span>
-            <span className="ps-footer-num">{patients.length}</span>
+            <span className="ps-footer-num">{safePatients.length}</span>
           </div>
           <div className="ps-footer-stat">
             <span>เฝ้าระวัง</span>
             <span className="ps-footer-num" style={{ color: '#ef4444' }}>
-              {patients.filter((p) => p.status === 'critical').length}
+              {safePatients.filter((p) => p.status === 'critical').length}
             </span>
           </div>
           <div className="ps-footer-stat">
             <span>ดูแลอยู่</span>
             <span className="ps-footer-num" style={{ color: '#10b981' }}>
-              {patients.filter((p) => p.status === 'active').length}
+              {safePatients.filter((p) => p.status === 'active').length}
             </span>
           </div>
+
+
         </div>
       </aside>
 
@@ -171,14 +183,18 @@ export default function PatientPage() {
       <div className="ps-main">
         {subPage === 'dashboard' && (
           <PatientDashboard
-            patients={patients}
+            patients={safePatients}
             onSelectPatient={(pt) => { setSelectedPatient(pt); setSubPage('list'); }}
             onAddPatient={() => setShowAddModal(true)}
+            currentUser={currentUser}
+            isLoggedIn={isLoggedIn}
+            onLogin={onLogin}
+            onLogout={onLogout}
           />
         )}
         {subPage === 'list' && (
           <PatientList
-            patients={patients}
+            patients={safePatients}
             loading={loading}
             onSelectPatient={setSelectedPatient}
             onAddPatient={() => setShowAddModal(true)}
@@ -189,7 +205,7 @@ export default function PatientPage() {
         )}
         {subPage === 'map' && (
           <PatientMap
-            patients={patients}
+            patients={safePatients}
             selectedId={mapSelectedId}
             onSelectPatient={(pt) => { setMapSelectedId(pt.id); setSelectedPatient(pt); }}
             onAddPatientAtLocation={(lat, lng) => {

@@ -1,6 +1,6 @@
 // src/PatientDashboard.tsx
 import { useMemo } from 'react';
-import { Users, AlertTriangle, CheckCircle, Archive } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut } from 'lucide-react';
 import type { Patient } from './patientTypes';
 import { PATIENT_STATUS_CONFIG, calcAge, avatarColor, initials } from './patientTypes';
 import './Patient.css';
@@ -9,9 +9,21 @@ interface PatientDashboardProps {
   patients: Patient[];
   onSelectPatient: (patient: Patient) => void;
   onAddPatient: () => void;
+  currentUser?: string;
+  isLoggedIn?: boolean;   // เพิ่ม
+  onLogin?: () => void;   // เพิ่ม
+  onLogout?: () => void;  // เพิ่ม (optional ถ้าอยากให้ logout จาก header ด้วย)
 }
 
-export default function PatientDashboard({ patients, onSelectPatient, onAddPatient }: PatientDashboardProps) {
+export default function PatientDashboard({
+  patients,
+  onSelectPatient,
+  onAddPatient,
+  currentUser,
+  isLoggedIn,
+  onLogin,
+  onLogout,
+}: PatientDashboardProps) {
   const counts = useMemo(() => ({
     total:    patients.length,
     active:   patients.filter((p) => p.status === 'active').length,
@@ -43,22 +55,84 @@ export default function PatientDashboard({ patients, onSelectPatient, onAddPatie
   }, [patients]);
 
   const stats = [
-    { label: 'ผู้ป่วยทั้งหมด',    val: counts.total,    icon: <Users size={22} />,         bg: '#eff6ff', ic: '#2563eb' },
-    { label: 'อยู่ในการดูแล',      val: counts.active,   icon: <CheckCircle size={22} />,    bg: '#ecfdf5', ic: '#10b981' },
-    { label: 'ต้องเฝ้าระวัง',      val: counts.critical, icon: <AlertTriangle size={22} />,  bg: '#fef2f2', ic: '#ef4444' },
-    { label: 'ปิดเคสแล้ว',        val: counts.inactive, icon: <Archive size={22} />,        bg: '#f8fafc', ic: '#64748b' },
+    { label: 'ผู้ป่วยทั้งหมด',  val: counts.total,    icon: <Users size={22} />,        bg: '#eff6ff', ic: '#2563eb' },
+    { label: 'อยู่ในการดูแล',    val: counts.active,   icon: <CheckCircle size={22} />,   bg: '#ecfdf5', ic: '#10b981' },
+    { label: 'ต้องเฝ้าระวัง',    val: counts.critical, icon: <AlertTriangle size={22} />, bg: '#fef2f2', ic: '#ef4444' },
+    { label: 'ปิดเคสแล้ว',      val: counts.inactive, icon: <Archive size={22} />,       bg: '#f8fafc', ic: '#64748b' },
   ];
+
+  const userAvatarBg = (name: string) => {
+    const colors = ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#16a34a', '#0891b2'];
+    return colors[name.charCodeAt(0) % colors.length];
+  };
 
   return (
     <div className="pt-page">
       <div className="pt-page-header">
         <div>
           <h1 className="pt-page-title">📊 ภาพรวมระบบผู้ป่วย</h1>
-          <p className="pt-page-sub">เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <p className="pt-page-sub" style={{ margin: 0 }}>เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
+            <button
+              className="pt-btn pt-btn-primary"
+              onClick={onAddPatient}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
+            >
+              <UserPlus size={15} />
+              + เพิ่มผู้ป่วยใหม่
+            </button>
+          </div>
         </div>
-        <button className="pt-btn pt-btn-primary" onClick={onAddPatient}>
-          + เพิ่มผู้ป่วยใหม่
-        </button>
+
+        {/* ขวาบน: แสดง user + ปุ่ม logout หรือปุ่ม login */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+          {isLoggedIn && currentUser ? (
+            <>
+              {/* Avatar + ชื่อ */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '50%',
+                  background: userAvatarBg(currentUser),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontWeight: 700, fontSize: '15px', flexShrink: 0,
+                }}>
+                  {currentUser.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>ออนไลน์</div>
+                </div>
+              </div>
+
+              {/* ปุ่ม Logout */}
+              <button
+                onClick={onLogout}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '7px 14px', borderRadius: '8px',
+                  background: 'transparent', border: '1px solid #e2e8f0',
+                  color: '#64748b', cursor: 'pointer', fontSize: '13px',
+                }}
+              >
+                <LogOut size={14} /> ออกจากระบบ
+              </button>
+            </>
+          ) : (
+            /* ปุ่ม Login */
+            <button
+              onClick={onLogin}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 18px', borderRadius: '8px',
+                background: '#2563eb', color: 'white',
+                border: 'none', cursor: 'pointer',
+                fontWeight: 600, fontSize: '14px',
+              }}
+            >
+              <LogIn size={15} /> เข้าสู่ระบบ
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -86,10 +160,7 @@ export default function PatientDashboard({ patients, onSelectPatient, onAddPatie
           ) : (
             criticalPatients.map((pt) => (
               <div key={pt.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
-                <div
-                  className="pt-avatar"
-                  style={{ background: avatarColor(pt.first_name) }}
-                >
+                <div className="pt-avatar" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
                 <div className="pt-patient-info">
@@ -113,10 +184,7 @@ export default function PatientDashboard({ patients, onSelectPatient, onAddPatie
           ) : (
             upcomingVisits.map(({ patient: pt, treatment: t }) => (
               <div key={t.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
-                <div
-                  className="pt-avatar pt-avatar-sm"
-                  style={{ background: avatarColor(pt.first_name) }}
-                >
+                <div className="pt-avatar pt-avatar-sm" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
                 <div className="pt-patient-info">
