@@ -1,6 +1,6 @@
 // src/PatientDashboard.tsx
-import { useMemo } from 'react';
-import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut, UserCheck } from 'lucide-react';
 import type { Patient } from './patientTypes';
 import { PATIENT_STATUS_CONFIG, calcAge, avatarColor, initials } from './patientTypes';
 import './Patient.css';
@@ -10,9 +10,9 @@ interface PatientDashboardProps {
   onSelectPatient: (patient: Patient) => void;
   onAddPatient: () => void;
   currentUser?: string;
-  isLoggedIn?: boolean;   // เพิ่ม
-  onLogin?: () => void;   // เพิ่ม
-  onLogout?: () => void;  // เพิ่ม (optional ถ้าอยากให้ logout จาก header ด้วย)
+  isLoggedIn?: boolean;   
+  onLogin?: () => void;   
+  onLogout?: () => void;  
 }
 
 export default function PatientDashboard({
@@ -24,15 +24,29 @@ export default function PatientDashboard({
   onLogin,
   onLogout,
 }: PatientDashboardProps) {
+  // 1. ตัวคำนวณนับสถิติตามระบบสถานะใหม่
   const counts = useMemo(() => ({
     total:    patients.length,
-    active:   patients.filter((p) => p.status === 'active').length,
-    critical: patients.filter((p) => p.status === 'critical').length,
-    inactive: patients.filter((p) => p.status === 'inactive').length,
+    general:  patients.filter((p) => p.status === 'general').length,
+    disabled: patients.filter((p) => p.status === 'disabled').length,
+    elderly:  patients.filter((p) => p.status === 'elderly').length,
+    finished: patients.filter((p) => p.status === 'finished').length,
   }), [patients]);
 
-  const criticalPatients = useMemo(() =>
-    patients.filter((p) => p.status === 'critical'), [patients]);
+  // กลุ่มผู้ป่วยที่อยู่ระหว่างการดูแลรักษาทั้งหมด (ไม่รวมผู้ป่วยที่จำหน่ายแล้ว)
+  const carePatients = useMemo(() =>
+    patients.filter((p) => p.status === 'general' || p.status === 'disabled' || p.status === 'elderly'),
+    [patients]
+  );
+
+  // State สำหรับคุม Dropdown กรองรายชื่อ
+  const [listFilter, setListFilter] = useState<'all' | 'general' | 'elderly' | 'disabled'>('all');
+
+  // ตัวแปรกรองข้อมูลผู้ป่วยเพื่อนำไปแสดงผลในรายชื่อการดูแล
+  const displayedPatients = useMemo(() => {
+    if (listFilter === 'all') return carePatients;
+    return carePatients.filter((p) => p.status === listFilter);
+  }, [carePatients, listFilter]);
 
   const recentPatients = useMemo(() =>
     [...patients]
@@ -54,11 +68,13 @@ export default function PatientDashboard({
       .slice(0, 5);
   }, [patients]);
 
+  // การ์ดสรุปจำนวนทั้ง 5 ช่องด้านบนหน้าจอ
   const stats = [
     { label: 'ผู้ป่วยทั้งหมด',  val: counts.total,    icon: <Users size={22} />,        bg: '#eff6ff', ic: '#2563eb' },
-    { label: 'อยู่ในการดูแล',    val: counts.active,   icon: <CheckCircle size={22} />,   bg: '#ecfdf5', ic: '#10b981' },
-    { label: 'ต้องเฝ้าระวัง',    val: counts.critical, icon: <AlertTriangle size={22} />, bg: '#fef2f2', ic: '#ef4444' },
-    { label: 'ปิดเคสแล้ว',      val: counts.inactive, icon: <Archive size={22} />,       bg: '#f8fafc', ic: '#64748b' },
+    { label: 'ผู้ป่วยทั่วไป',    val: counts.general,  icon: <UserCheck size={22} />,    bg: '#ecfdf5', ic: '#10b981' },
+    { label: 'ผู้สูงอายุ',     val: counts.elderly,  icon: <AlertTriangle size={22} />, bg: '#fef2f2', ic: '#ef4444' },
+    { label: 'ผู้พิการ',       val: counts.disabled, icon: <CheckCircle size={22} />,   bg: '#ecfdf5', ic: '#0051ff' },
+    { label: 'จำหน่าย',       val: counts.finished, icon: <Archive size={22} />,       bg: '#f8fafc', ic: '#64748b' },
   ];
 
   const userAvatarBg = (name: string) => {
@@ -84,11 +100,9 @@ export default function PatientDashboard({
           </div>
         </div>
 
-        {/* ขวาบน: แสดง user + ปุ่ม logout หรือปุ่ม login */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           {isLoggedIn && currentUser ? (
             <>
-              {/* Avatar + ชื่อ */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '38px', height: '38px', borderRadius: '50%',
@@ -104,7 +118,6 @@ export default function PatientDashboard({
                 </div>
               </div>
 
-              {/* ปุ่ม Logout */}
               <button
                 onClick={onLogout}
                 style={{
@@ -118,7 +131,6 @@ export default function PatientDashboard({
               </button>
             </>
           ) : (
-            /* ปุ่ม Login */
             <button
               onClick={onLogin}
               style={{
@@ -135,7 +147,6 @@ export default function PatientDashboard({
         </div>
       </div>
 
-      {/* Stats */}
       <div className="pt-stats-grid">
         {stats.map((s) => (
           <div key={s.label} className="pt-stat-card">
@@ -149,16 +160,31 @@ export default function PatientDashboard({
       </div>
 
       <div className="pt-two-col">
-        {/* เฝ้าระวัง */}
+        {/* รายชื่อผู้ป่วยในการดูแลพร้อม Dropdown คัดกรอง */}
         <div className="pt-card">
-          <div className="pt-card-head">
-            <span className="pt-card-title">🚨 ผู้ป่วยที่ต้องเฝ้าระวัง</span>
-            <span className="pt-badge-red">{counts.critical} ราย</span>
+          <div className="pt-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="pt-card-title">🚨 รายชื่อผู้ป่วยในการดูแล</span>
+              <span className="pt-badge-red">{displayedPatients.length} ราย</span>
+            </div>
+            
+            <select 
+              className="pt-select" 
+              style={{ padding: '4px 30px 4px 12px', fontSize: '13px', borderRadius: '8px', minHeight: '32px' }}
+              value={listFilter} 
+              onChange={(e) => setListFilter(e.target.value as 'all' | 'general' | 'elderly' | 'disabled')}
+            >
+              <option value="all">ดูทั้งหมด</option>
+              <option value="general">ทั่วไป</option>
+              <option value="elderly">ผู้สูงอายุ</option>
+              <option value="disabled">ผู้พิการ</option>
+            </select>
           </div>
-          {criticalPatients.length === 0 ? (
-            <div className="pt-empty">ไม่มีผู้ป่วยที่ต้องเฝ้าระวัง 🎉</div>
+          
+          {displayedPatients.length === 0 ? (
+            <div className="pt-empty">ไม่มีผู้ป่วยในหมวดหมู่นี้ 🎉</div>
           ) : (
-            criticalPatients.map((pt) => (
+            displayedPatients.map((pt) => (
               <div key={pt.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
                 <div className="pt-avatar" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
@@ -226,7 +252,7 @@ export default function PatientDashboard({
                       </div>
                       <div>
                         <div className="pt-patient-name">{pt.first_name} {pt.last_name}</div>
-                        <div className="pt-patient-sub">{pt.hn}</div>
+                        <div className="pt-patient-sub">{pt.phone}</div> {/* แก้จุดนี้: แสดงเบอร์แทน HN เพื่อลบค่าแดงออก */}
                       </div>
                     </div>
                   </td>
@@ -240,9 +266,9 @@ export default function PatientDashboard({
                     )}
                   </td>
                   <td>
-                    <span className="pt-status-badge" style={{ background: sc.bg, color: sc.color }}>
-                      <span className="pt-dot" style={{ background: sc.color }} />
-                      {sc.label}
+                    <span className="pt-status-badge" style={{ background: sc?.bg ?? '#f1f5f9', color: sc?.color ?? '#64748b' }}>
+                      <span className="pt-dot" style={{ background: sc?.color ?? '#64748b' }} />
+                      {sc?.label ?? 'ไม่ระบุ'}
                     </span>
                   </td>
                 </tr>

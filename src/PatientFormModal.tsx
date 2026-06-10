@@ -8,13 +8,19 @@ interface PatientFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (input: NewPatientInput) => Promise<void>;
-  editTarget?: Patient | null;  // ถ้ามีค่า = โหมดแก้ไข
-  initialLat?: number;          // พิกัดจากการคลิกแผนที่
+  editTarget?: Patient | null;  
+  initialLat?: number;          
   initialLng?: number;
 }
 
+// 💡 รายการการรักษาทั้ง 10 รูปแบบตามเงื่อนไข
+const TREATMENT_OPTIONS = [
+  'Hot pack', 'Ultrasound', 'Electrical stimulation', 'strengthening',
+  'Traction', 'TENs', 'stretching', 'ambulation',
+  'bicycle ergometer', 'theraputic exercise'
+];
+
 const EMPTY_FORM: NewPatientInput = {
-  hn: '',
   first_name: '',
   last_name: '',
   birth_date: '',
@@ -25,12 +31,14 @@ const EMPTY_FORM: NewPatientInput = {
   address: '',
   subdistrict: 'สันผักหวาน',
   district: 'หางดง',
-  blood_type: 'A+',
   allergies: '',
   conditions: [],
-  status: 'active',
+  status: 'general', 
   lat: 0,
   lng: 0,
+  // 💡 จุดเพิ่มค่าเริ่มต้นใหม่
+  treatment_type: '',
+  treatments_list: [],
 };
 
 export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, initialLat, initialLng }: PatientFormModalProps) {
@@ -42,12 +50,10 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
 
   const isEdit = Boolean(editTarget);
 
-  // โหลดข้อมูลเดิมเมื่อแก้ไข
   useEffect(() => {
     if (!isOpen) return;
     if (editTarget) {
       setForm({
-        hn:                editTarget.hn ?? '',
         first_name:        editTarget.first_name,
         last_name:         editTarget.last_name,
         birth_date:        editTarget.birth_date,
@@ -58,12 +64,14 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
         address:           editTarget.address ?? '',
         subdistrict:       editTarget.subdistrict ?? 'สันผักหวาน',
         district:          editTarget.district ?? 'หางดง',
-        blood_type:        editTarget.blood_type ?? 'A+',
         allergies:         editTarget.allergies ?? '',
         conditions:        editTarget.conditions ?? [],
         status:            editTarget.status,
         lat:               editTarget.lat,
         lng:               editTarget.lng,
+        // 💡 ดึงข้อมูลเดิมมาใส่ตอนโหมดแก้ไข
+        treatment_type:    editTarget.treatment_type ?? '',
+        treatments_list:   editTarget.treatments_list ?? [],
       });
     } else {
       setForm({
@@ -80,6 +88,22 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
 
   const set = <K extends keyof NewPatientInput>(key: K, value: NewPatientInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  // 💡 ฟังก์ชันจัดการการติ๊กถูก Checkbox (จำกัดสูงสุด 4 รายการ)
+  function handleTreatmentCheckbox(item: string) {
+    const currentList = form.treatments_list ?? [];
+    if (currentList.includes(item)) {
+      set('treatments_list', currentList.filter((x) => x !== item));
+      setError('');
+    } else {
+      if (currentList.length >= 4) {
+        setError('❌ สามารถเลือกรายการการรักษาได้สูงสุด 4 รายการเท่านั้นครับ');
+        return;
+      }
+      set('treatments_list', [...currentList, item]);
+      setError('');
+    }
+  }
 
   function addCondition() {
     const val = condInput.trim();
@@ -146,16 +170,50 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
           <div className="pt-form-section-title">ข้อมูลพื้นฐาน</div>
           <div className="pt-form-row">
             <div className="pt-form-group">
-              <label className="pt-label">HN <span className="pt-optional">(ถ้ามี)</span></label>
-              <input className="pt-input" value={form.hn ?? ''} onChange={(e) => set('hn', e.target.value)} placeholder="HN-2024-001" />
-            </div>
-            <div className="pt-form-group">
               <label className="pt-label">สถานะ</label>
               <select className="pt-select" value={form.status} onChange={(e) => set('status', e.target.value as PatientStatus)}>
-                <option value="active">ดูแลอยู่</option>
-                <option value="critical">ต้องเฝ้าระวัง</option>
-                <option value="inactive">ปิดเคส</option>
+                <option value="general">ผู้ป่วยทั่วไป</option>
+                <option value="disabled">ผู้พิการ</option>
+                <option value="elderly">ผู้สูงอายุ</option>
+                <option value="finished">จำหน่าย</option>
               </select>
+            </div>
+            <div className="pt-form-group">
+              <label className="pt-label">ประวัติแพ้ยา</label>
+              <input className="pt-input" value={form.allergies ?? ''} onChange={(e) => set('allergies', e.target.value)} placeholder="ใส่ - ถ้าไม่มี" />
+            </div>
+          </div>
+
+          {/* 💡 จุดเพิ่มใหม่: ประเภทและรายการกายภาพบำบัด */}
+          <div className="pt-form-section-title" style={{ marginTop: '6px' }}>ข้อมูลทางกายภาพบำบัด</div>
+          <div className="pt-form-row">
+            <div className="pt-form-group">
+              <label className="pt-label">ประเภทการรักษา</label>
+              <select className="pt-select" value={form.treatment_type} onChange={(e) => set('treatment_type', e.target.value)}>
+                <option value="">-- เลือกประเภท --</option>
+                <option value="MS">MS (ระบบกระดูกและกล้ามเนื้อ)</option>
+                <option value="neuro">neuro (ระบบประสาท)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-form-group">
+            <label className="pt-label">รายการการรักษา <span className="pt-optional">(ติ๊กถูกเลือกได้สูงสุด 4 รายการ)</span></label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              {TREATMENT_OPTIONS.map((item) => {
+                const isChecked = (form.treatments_list ?? []).includes(item);
+                return (
+                  <label key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: '#334155', cursor: 'pointer', fontWeight: isChecked ? 600 : 400 }}>
+                    <input
+                      type="checkbox"
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      checked={isChecked}
+                      onChange={() => handleTreatmentCheckbox(item)}
+                    />
+                    {item}
+                  </label>
+                );
+              })}
             </div>
           </div>
 
@@ -182,19 +240,6 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
                 <option>หญิง</option>
                 <option>ไม่ระบุ</option>
               </select>
-            </div>
-          </div>
-
-          <div className="pt-form-row">
-            <div className="pt-form-group">
-              <label className="pt-label">กรุ๊ปเลือด</label>
-              <select className="pt-select" value={form.blood_type ?? ''} onChange={(e) => set('blood_type', e.target.value)}>
-                {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((b) => <option key={b}>{b}</option>)}
-              </select>
-            </div>
-            <div className="pt-form-group">
-              <label className="pt-label">ประวัติแพ้ยา</label>
-              <input className="pt-input" value={form.allergies ?? ''} onChange={(e) => set('allergies', e.target.value)} placeholder="ใส่ - ถ้าไม่มี" />
             </div>
           </div>
 
@@ -261,13 +306,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
               />
             </div>
           </div>
-          {coordError && (
-            <div className="pt-coord-hint">
-              📍 กรุณาระบุพิกัดที่ถูกต้อง — สามารถคลิกบนแผนที่เพื่อรับพิกัดอัตโนมัติได้
-            </div>
-          )}
 
-          {/* ─── โรคประจำตัว ──────────────────────────────────────────── */}
           <div className="pt-form-section-title">โรคประจำตัว</div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input

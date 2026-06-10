@@ -183,7 +183,7 @@ export default function PatientMap({
       const popup = L.popup({ maxWidth: 240, closeButton: false }).setContent(`
         <div style="font-family:'Sarabun',sans-serif;padding:4px;">
           <div style="font-weight:700;font-size:14px;color:#0f172a;">${pt.first_name} ${pt.last_name}</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px;">${pt.hn} · อายุ ${calcAge(pt.birth_date)} ปี</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;"> อายุ ${calcAge(pt.birth_date)} ปี</div>
           <div style="margin-top:6px;">${conditionHtml}</div>
           <div style="font-size:12px;color:#475569;margin-top:8px;">📍 ${pt.address}</div>
           <div style="margin-top:6px;">

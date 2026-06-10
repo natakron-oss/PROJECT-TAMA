@@ -15,11 +15,13 @@ interface PatientListProps {
   onRefresh: () => void;
 }
 
+// 1. อัปเดตแท็บตัวกรองด้านบนให้เป็นสถานะใหม่ทั้งหมด
 const FILTER_TABS: { value: 'all' | PatientStatus; label: string }[] = [
   { value: 'all',      label: 'ทั้งหมด' },
-  { value: 'active',   label: 'ดูแลอยู่' },
-  { value: 'critical', label: 'เฝ้าระวัง' },
-  { value: 'inactive', label: 'ปิดเคส' },
+  { value: 'general',  label: 'ทั่วไป' },
+  { value: 'elderly',  label: 'ผู้สูงอายุ' },
+  { value: 'disabled', label: 'ผู้พิการ' },
+  { value: 'finished', label: 'จำหน่าย' },
 ];
 
 export default function PatientList({
@@ -39,7 +41,8 @@ export default function PatientList({
       if (filter !== 'all' && p.status !== filter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
-        return `${p.first_name} ${p.last_name} ${p.hn} ${p.phone}`.toLowerCase().includes(q);
+        // จุดที่ 2: ลบ p.hn ออกจากฟังก์ชันค้นหา เพื่อไม่ให้ตัวแปรพัง
+        return `${p.first_name} ${p.last_name} ${p.phone}`.toLowerCase().includes(q);
       }
       return true;
     });
@@ -72,7 +75,7 @@ export default function PatientList({
               className="pt-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อ, HN, เบอร์โทร..."
+              placeholder="ค้นหาชื่อ, เบอร์โทร..." // เอาคำว่า HN ออก
             />
           </div>
           <div className="pt-filter-tabs">
@@ -102,7 +105,7 @@ export default function PatientList({
                 <th>อายุ / เพศ</th>
                 <th>โรคประจำตัว</th>
                 <th>เบอร์โทร</th>
-                <th>กรุ๊ปเลือด</th>
+                {/* จุดที่ 3: ลบ <th>กรุ๊ปเลือด</th> ออกไปแล้ว */}
                 <th>การรักษาล่าสุด</th>
                 <th>สถานะ</th>
                 <th>จัดการ</th>
@@ -127,8 +130,8 @@ export default function PatientList({
                           {initials(pt.first_name, pt.last_name)}
                         </div>
                         <div>
+                          {/* ลบแถบแสดงผลโค้ด HN ใต้ชื่อผู้ป่วยออกแล้ว */}
                           <div className="pt-patient-name">{pt.first_name} {pt.last_name}</div>
-                          <div className="pt-patient-sub">{pt.hn}</div>
                         </div>
                       </div>
                     </td>
@@ -148,9 +151,9 @@ export default function PatientList({
                       )}
                     </td>
                     <td style={{ color: '#475569' }}>{pt.phone || '—'}</td>
-                    <td>
-                      <span className="pt-blood-badge">{pt.blood_type || '—'}</span>
-                    </td>
+                    
+                    {/* ลบช่อง <td> กรุ๊ปเลือด ออกไปเรียบร้อยแล้ว */}
+
                     <td style={{ fontSize: '12px', color: '#64748b' }}>
                       {lastTreatment
                         ? <>
@@ -161,9 +164,9 @@ export default function PatientList({
                       }
                     </td>
                     <td>
-                      <span className="pt-status-badge" style={{ background: sc.bg, color: sc.color }}>
-                        <span className="pt-dot" style={{ background: sc.color }} />
-                        {sc.label}
+                      <span className="pt-status-badge" style={{ background: sc?.bg ?? '#f1f5f9', color: sc?.color ?? '#64748b' }}>
+                        <span className="pt-dot" style={{ background: sc?.color ?? '#64748b' }} />
+                        {sc?.label ?? 'ไม่ระบุ'}
                       </span>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>

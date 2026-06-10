@@ -1,6 +1,6 @@
 // src/patientTypes.ts
 
-export type PatientStatus = 'active' | 'inactive' | 'critical';
+export type PatientStatus = 'general' | 'disabled' | 'elderly' | 'finished';
 
 export interface TreatmentRecord {
   id?: string;
@@ -15,7 +15,6 @@ export interface TreatmentRecord {
 
 export interface Patient {
   id: string;
-  hn: string;
   first_name: string;
   last_name: string;
   birth_date: string;
@@ -26,50 +25,47 @@ export interface Patient {
   address: string;
   subdistrict?: string;
   district?: string;
-  blood_type?: string;
-  allergies?: string;
-  conditions: string[];           // เก็บเป็น JSON array ใน Supabase
-  status: PatientStatus;
-  lat: number;
-  lng: number;
-  created_at?: string;
-  updated_at?: string;
-  treatments?: TreatmentRecord[]; // join มาจาก patient_treatments
-}
-
-export interface NewPatientInput {
-  hn?: string;
-  first_name: string;
-  last_name: string;
-  birth_date: string;
-  gender: 'ชาย' | 'หญิง' | 'ไม่ระบุ';
-  phone: string;
-  emergency_contact?: string;
-  emergency_phone?: string;
-  address: string;
-  subdistrict?: string;
-  district?: string;
-  blood_type?: string;
   allergies?: string;
   conditions: string[];
   status: PatientStatus;
   lat: number;
   lng: number;
+  created_at?: string;
+  updated_at?: string;
+  treatments?: TreatmentRecord[];
+  
+  // 💡 จุดเพิ่มใหม่: ข้อมูลประเภทและรายการทางกายภาพบำบัด
+  treatment_type: string;   // เก็บค่า 'MS' หรือ 'neuro' หรือ ''
+  treatments_list: string[]; // เก็บอาเรย์ของรายการที่ติ๊กเลือก (สูงสุด 4 อัน)
 }
 
-export interface NewTreatmentInput {
-  patient_id: string;
-  date: string;
-  doctor: string;
-  diagnosis: string;
-  note?: string;
-  next_visit?: string;
+export interface NewPatientInput {
+  first_name: string;
+  last_name: string;
+  birth_date: string;
+  gender: 'ชาย' | 'หญิง' | 'ไม่ระบุ';
+  phone: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
+  address: string;
+  subdistrict?: string;
+  district?: string;
+  allergies?: string;
+  conditions: string[];
+  status: PatientStatus;
+  lat: number;
+  lng: number;
+
+  // 💡 จุดเพิ่มใหม่: สำหรับฟอร์มเพิ่มผู้ป่วยใหม่
+  treatment_type: string;
+  treatments_list: string[];
 }
 
 export const PATIENT_STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string }> = {
-  active:   { label: 'ดูแลอยู่',       color: '#10b981', bg: '#ecfdf5' },
-  inactive: { label: 'ปิดเคส',         color: '#64748b', bg: '#f1f5f9' },
-  critical: { label: 'ต้องเฝ้าระวัง', color: '#ef4444', bg: '#fef2f2' },
+  general:  { label: 'ผู้ป่วยทั่วไป', color: '#10b981', bg: '#ecfdf5' },
+  disabled: { label: 'ผู้พิการ',      color: '#ef4444', bg: '#fef2f2' },
+  elderly:  { label: 'ผู้สูงอายุ',     color: '#3b82f6', bg: '#eff6ff' },
+  finished: { label: 'จำหน่าย',       color: '#64748b', bg: '#f8fafc' },
 };
 
 export const CONDITION_COLORS: Record<string, string> = {

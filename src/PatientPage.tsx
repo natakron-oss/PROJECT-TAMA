@@ -10,7 +10,7 @@ import {
   addTreatment,
   deleteTreatment,
 } from './lib/patientData';
-import type { Patient, NewPatientInput, NewTreatmentInput } from './patientTypes';
+import type { Patient, NewPatientInput } from './patientTypes'; // 💡 จุดแก้ไข 1: เอา NewTreatmentInput ที่ไม่มีอยู่ออก
 import PatientDashboard   from './PatientDashboard';
 import PatientList        from './PatientList';
 import PatientMap         from './PatientMap';
@@ -18,6 +18,16 @@ import PatientDetail      from './PatientDetail';
 import PatientFormModal   from './PatientFormModal';
 import TreatmentFormModal from './TreatmentFormModal';
 import './Patient.css';
+
+// 💡 จุดแก้ไข 1.2: สร้างโครงสร้างประเภทข้อมูลการรักษาใหม่ไว้ตรงนี้เลยเพื่อแก้เส้นแดงช่วง import
+type NewTreatmentInput = {
+  patient_id: string;
+  date: string;
+  doctor: string;
+  diagnosis: string;
+  note?: string;
+  next_visit?: string;
+};
 
 type PatientSubPage = 'dashboard' | 'list' | 'map';
 
@@ -29,16 +39,15 @@ const NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string }[] 
 
 interface PatientPageProps {
   onLogout?: () => void;
-  onLogin?: () => void;   // เพิ่ม
+  onLogin?: () => void;   
   currentUser?: string;
-  isLoggedIn?: boolean;   // เพิ่ม
+  isLoggedIn?: boolean;   
 }
 
 export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn }: PatientPageProps) {
   const [subPage, setSubPage] = useState<PatientSubPage>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
 
-  // Guard: ป้องกัน undefined
   const safePatients = patients ?? [];
   const [loading, setLoading] = useState(true);
 
@@ -108,11 +117,14 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         : p,
       ),
     );
-    setSelectedPatient((prev) =>
-      prev?.id === input.patient_id
+    
+    // 💡 จุดแก้ไข 2: ปรับฟังก์ชันตรวจสอบค่าป้องกันไม่ให้ TypeScript บ่นเรื่องค่า null (แก้รูปที่ 494)
+    setSelectedPatient((prev) => {
+      if (!prev) return null; 
+      return prev.id === input.patient_id
         ? { ...prev, treatments: [record, ...(prev.treatments ?? [])] }
-        : prev,
-    );
+        : prev;
+    });
   };
 
   const handleDeleteTreatment = async (treatmentId: string) => {
@@ -130,7 +142,6 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
 
       {/* ══ Sidebar ══════════════════════════════════════════════════════════ */}
       <aside className="ps-sidebar">
-        {/* Brand */}
         <div className="ps-brand">
           <div className="ps-brand-icon">
             <Activity size={22} color="white" />
@@ -141,7 +152,6 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="ps-nav">
           <div className="ps-nav-label">เมนูหลัก</div>
           {NAV_ITEMS.map((item) => (
@@ -156,26 +166,35 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
           ))}
         </nav>
 
-        {/* Footer stats */}
-        <div className="ps-sidebar-footer">
+        <div className="ps-sidebar-footer" style={{ gap: '4px' }}>
           <div className="ps-footer-stat">
             <span>ผู้ป่วยทั้งหมด</span>
-            <span className="ps-footer-num">{safePatients.length}</span>
+            <span className="ps-footer-num">{safePatients.length} ราย</span>
           </div>
           <div className="ps-footer-stat">
-            <span>เฝ้าระวัง</span>
-            <span className="ps-footer-num" style={{ color: '#ef4444' }}>
-              {safePatients.filter((p) => p.status === 'critical').length}
-            </span>
-          </div>
-          <div className="ps-footer-stat">
-            <span>ดูแลอยู่</span>
+            <span>ผู้ป่วยทั่วไป</span>
             <span className="ps-footer-num" style={{ color: '#10b981' }}>
-              {safePatients.filter((p) => p.status === 'active').length}
+              {safePatients.filter((p) => p.status === 'general').length}
             </span>
           </div>
-
-
+          <div className="ps-footer-stat">
+            <span>ผู้สูงอายุ</span>
+            <span className="ps-footer-num" style={{ color: '#3b82f6' }}>
+              {safePatients.filter((p) => p.status === 'elderly').length}
+            </span>
+          </div>
+          <div className="ps-footer-stat">
+            <span>ผู้พิการ</span>
+            <span className="ps-footer-num" style={{ color: '#ef4444' }}>
+              {safePatients.filter((p) => p.status === 'disabled').length}
+            </span>
+          </div>
+          <div className="ps-footer-stat">
+            <span>จำหน่ายแล้ว</span>
+            <span className="ps-footer-num" style={{ color: '#64748b' }}>
+              {safePatients.filter((p) => p.status === 'finished').length}
+            </span>
+          </div>
         </div>
       </aside>
 
@@ -239,11 +258,13 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         initialLat={mapPickedLat}
         initialLng={mapPickedLng}
       />
+      
+      {/* 💡 จุดแก้ไข 3: ใส่เครื่องหมาย ! (Non-null assertion) เพื่อบอกระบบว่าฟอร์มนี้จะเปิดเมื่อมีคนไข้แน่นอน (แก้รูปที่ 495) */}
       <TreatmentFormModal
         isOpen={Boolean(treatmentTarget)}
         onClose={() => setTreatmentTarget(null)}
-        patient={treatmentTarget}
-        onSave={(input) => handleAddTreatment(input)}
+        patient={treatmentTarget!}
+        onSave={(input) => handleAddTreatment(input as any)}
       />
     </div>
   );
