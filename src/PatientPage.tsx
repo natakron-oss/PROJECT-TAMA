@@ -21,24 +21,24 @@ import './Patient.css';
 
 type PatientSubPage = 'dashboard' | 'list' | 'map';
 
-const NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
-  { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
-  { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย' },
-  { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
+// ✅ NAV_ITEMS ทุกอัน — กรอง role ใน render แทน
+const NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string; adminOnly: boolean }[] = [
+  { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม',       adminOnly: false },
+  { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย', adminOnly: true  },
+  { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย',  adminOnly: true  },
 ];
 
 interface PatientPageProps {
   onLogout?: () => void;
-  onLogin?: () => void;   // เพิ่ม
+  onLogin?: () => void;
   currentUser?: string;
-  isLoggedIn?: boolean;   // เพิ่ม
+  isLoggedIn?: boolean;
+  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
 }
 
-export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn }: PatientPageProps) {
+export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn, userRole }: PatientPageProps) {
   const [subPage, setSubPage] = useState<PatientSubPage>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
-
-  // Guard: ป้องกัน undefined
   const safePatients = patients ?? [];
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +49,8 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
   const [mapSelectedId, setMapSelectedId]     = useState<string | null>(null);
   const [mapPickedLat, setMapPickedLat]       = useState<number | undefined>();
   const [mapPickedLng, setMapPickedLng]       = useState<number | undefined>();
+
+  const isAdmin = userRole === 'admin'; // ✅ shorthand
 
   // ─── Load ─────────────────────────────────────────────────────────────────
   const loadPatients = useCallback(async () => {
@@ -65,7 +67,11 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
 
   useEffect(() => { void loadPatients(); }, [loadPatients]);
 
-  // Realtime Supabase
+  // ✅ ถ้า role เปลี่ยน (logout แล้ว login ใหม่) reset กลับ dashboard เสมอ
+  useEffect(() => {
+    setSubPage('dashboard');
+  }, [userRole]);
+
   useEffect(() => {
     if (!isSupabaseEnabled) return;
     import('./lib/supabase').then(({ supabase }) => {
@@ -130,7 +136,6 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
 
       {/* ══ Sidebar ══════════════════════════════════════════════════════════ */}
       <aside className="ps-sidebar">
-        {/* Brand */}
         <div className="ps-brand">
           <div className="ps-brand-icon">
             <Activity size={22} color="white" />
@@ -141,22 +146,22 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="ps-nav">
           <div className="ps-nav-label">เมนูหลัก</div>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className={`ps-nav-btn ${subPage === item.id ? 'active' : ''}`}
-              onClick={() => setSubPage(item.id)}
-            >
-              <span className="ps-nav-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
+          {NAV_ITEMS
+            .filter((item) => !item.adminOnly || isAdmin) // ✅ กรองเมนูตาม role
+            .map((item) => (
+              <button
+                key={item.id}
+                className={`ps-nav-btn ${subPage === item.id ? 'active' : ''}`}
+                onClick={() => setSubPage(item.id)}
+              >
+                <span className="ps-nav-icon">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
         </nav>
 
-        {/* Footer stats */}
         <div className="ps-sidebar-footer">
           <div className="ps-footer-stat">
             <span>ผู้ป่วยทั้งหมด</span>
@@ -174,8 +179,6 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
               {safePatients.filter((p) => p.status === 'active').length}
             </span>
           </div>
-
-
         </div>
       </aside>
 
@@ -184,15 +187,21 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         {subPage === 'dashboard' && (
           <PatientDashboard
             patients={safePatients}
-            onSelectPatient={(pt) => { setSelectedPatient(pt); setSubPage('list'); }}
+            onSelectPatient={(pt) => {
+              // ✅ user ธรรมดาคลิก patient แล้วไม่ให้ไปหน้า list
+              if (isAdmin) { setSelectedPatient(pt); setSubPage('list'); }
+              else { setSelectedPatient(pt); }
+            }}
             onAddPatient={() => setShowAddModal(true)}
             currentUser={currentUser}
             isLoggedIn={isLoggedIn}
+            userRole={userRole}   // ✅ ส่งลงไป
             onLogin={onLogin}
             onLogout={onLogout}
           />
         )}
-        {subPage === 'list' && (
+        {/* ✅ หน้า list/map render เฉพาะ admin เข้าถึงได้ */}
+        {subPage === 'list' && isAdmin && (
           <PatientList
             patients={safePatients}
             loading={loading}
@@ -203,7 +212,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
             onRefresh={() => void loadPatients()}
           />
         )}
-        {subPage === 'map' && (
+        {subPage === 'map' && isAdmin && (
           <PatientMap
             patients={safePatients}
             selectedId={mapSelectedId}
@@ -223,28 +232,32 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         <PatientDetail
           patient={selectedPatient}
           onClose={() => setSelectedPatient(null)}
-          onAddTreatment={(pt) => { setTreatmentTarget(pt); setSelectedPatient(null); }}
-          onDeleteTreatment={(id) => void handleDeleteTreatment(id)}
-          onEditPatient={(pt) => { setEditTarget(pt); setShowAddModal(true); setSelectedPatient(null); }}
-          onDeletePatient={(id) => void handleDeletePatient(id)}
+          onAddTreatment={isAdmin ? (pt) => { setTreatmentTarget(pt); setSelectedPatient(null); } : undefined}
+          onDeleteTreatment={isAdmin ? (id) => void handleDeleteTreatment(id) : undefined}
+          onEditPatient={isAdmin ? (pt) => { setEditTarget(pt); setShowAddModal(true); setSelectedPatient(null); } : undefined}
+          onDeletePatient={isAdmin ? (id) => void handleDeletePatient(id) : undefined}
         />
       )}
 
-      {/* ══ Modals ═══════════════════════════════════════════════════════════ */}
-      <PatientFormModal
-        isOpen={showAddModal}
-        onClose={() => { setShowAddModal(false); setEditTarget(null); setMapPickedLat(undefined); setMapPickedLng(undefined); }}
-        onSave={(input) => handleSavePatient(input)}
-        editTarget={editTarget}
-        initialLat={mapPickedLat}
-        initialLng={mapPickedLng}
-      />
-      <TreatmentFormModal
-        isOpen={Boolean(treatmentTarget)}
-        onClose={() => setTreatmentTarget(null)}
-        patient={treatmentTarget}
-        onSave={(input) => handleAddTreatment(input)}
-      />
+      {/* ══ Modals — admin only ═══════════════════════════════════════════════ */}
+      {isAdmin && (
+        <>
+          <PatientFormModal
+            isOpen={showAddModal}
+            onClose={() => { setShowAddModal(false); setEditTarget(null); setMapPickedLat(undefined); setMapPickedLng(undefined); }}
+            onSave={(input) => handleSavePatient(input)}
+            editTarget={editTarget}
+            initialLat={mapPickedLat}
+            initialLng={mapPickedLng}
+          />
+          <TreatmentFormModal
+            isOpen={Boolean(treatmentTarget)}
+            onClose={() => setTreatmentTarget(null)}
+            patient={treatmentTarget}
+            onSave={(input) => handleAddTreatment(input)}
+          />
+        </>
+      )}
     </div>
   );
 }

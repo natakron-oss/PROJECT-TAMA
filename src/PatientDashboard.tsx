@@ -10,9 +10,10 @@ interface PatientDashboardProps {
   onSelectPatient: (patient: Patient) => void;
   onAddPatient: () => void;
   currentUser?: string;
-  isLoggedIn?: boolean;   // เพิ่ม
-  onLogin?: () => void;   // เพิ่ม
-  onLogout?: () => void;  // เพิ่ม (optional ถ้าอยากให้ logout จาก header ด้วย)
+  isLoggedIn?: boolean;
+  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 export default function PatientDashboard({
@@ -21,9 +22,12 @@ export default function PatientDashboard({
   onAddPatient,
   currentUser,
   isLoggedIn,
+  userRole,   // ✅ รับ
   onLogin,
   onLogout,
 }: PatientDashboardProps) {
+  const isAdmin = userRole === 'admin'; // ✅ shorthand
+
   const counts = useMemo(() => ({
     total:    patients.length,
     active:   patients.filter((p) => p.status === 'active').length,
@@ -73,22 +77,23 @@ export default function PatientDashboard({
           <h1 className="pt-page-title">📊 ภาพรวมระบบผู้ป่วย</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <p className="pt-page-sub" style={{ margin: 0 }}>เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
-            <button
-              className="pt-btn pt-btn-primary"
-              onClick={onAddPatient}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
-            >
-              <UserPlus size={15} />
-              + เพิ่มผู้ป่วยใหม่
-            </button>
+            {/* ✅ แสดงปุ่มเพิ่มผู้ป่วยเฉพาะ admin */}
+            {isAdmin && (
+              <button
+                className="pt-btn pt-btn-primary"
+                onClick={onAddPatient}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
+              >
+                <UserPlus size={15} />
+                + เพิ่มผู้ป่วยใหม่
+              </button>
+            )}
           </div>
         </div>
 
-        {/* ขวาบน: แสดง user + ปุ่ม logout หรือปุ่ม login */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           {isLoggedIn && currentUser ? (
             <>
-              {/* Avatar + ชื่อ */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '38px', height: '38px', borderRadius: '50%',
@@ -100,11 +105,12 @@ export default function PatientDashboard({
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>ออนไลน์</div>
+                  {/* ✅ แสดง role badge */}
+                  <div style={{ fontSize: '12px', color: isAdmin ? '#2563eb' : '#64748b', fontWeight: isAdmin ? 600 : 400 }}>
+                    {isAdmin ? '🔑 ผู้ดูแลระบบ' : '👤 ผู้ใช้งาน'}
+                  </div>
                 </div>
               </div>
-
-              {/* ปุ่ม Logout */}
               <button
                 onClick={onLogout}
                 style={{
@@ -118,7 +124,6 @@ export default function PatientDashboard({
               </button>
             </>
           ) : (
-            /* ปุ่ม Login */
             <button
               onClick={onLogin}
               style={{
@@ -135,7 +140,6 @@ export default function PatientDashboard({
         </div>
       </div>
 
-      {/* Stats */}
       <div className="pt-stats-grid">
         {stats.map((s) => (
           <div key={s.label} className="pt-stat-card">
@@ -149,7 +153,6 @@ export default function PatientDashboard({
       </div>
 
       <div className="pt-two-col">
-        {/* เฝ้าระวัง */}
         <div className="pt-card">
           <div className="pt-card-head">
             <span className="pt-card-title">🚨 ผู้ป่วยที่ต้องเฝ้าระวัง</span>
@@ -173,7 +176,6 @@ export default function PatientDashboard({
           )}
         </div>
 
-        {/* นัดใน 14 วัน */}
         <div className="pt-card">
           <div className="pt-card-head">
             <span className="pt-card-title">📅 นัดหมายใน 14 วันข้างหน้า</span>
@@ -200,7 +202,6 @@ export default function PatientDashboard({
         </div>
       </div>
 
-      {/* ผู้ป่วยล่าสุด */}
       <div className="pt-card" style={{ marginTop: '20px' }}>
         <div className="pt-card-head">
           <span className="pt-card-title">👥 รายการผู้ป่วยล่าสุด</span>
@@ -216,7 +217,7 @@ export default function PatientDashboard({
           </thead>
           <tbody>
             {recentPatients.map((pt) => {
-              const sc = PATIENT_STATUS_CONFIG[pt.status];
+              const sc = PATIENT_STATUS_CONFIG[pt.status] ?? { bg: '#f1f5f9', color: '#64748b', label: 'ไม่ระบุ' };
               return (
                 <tr key={pt.id} onClick={() => onSelectPatient(pt)} className="pt-table-row">
                   <td>
