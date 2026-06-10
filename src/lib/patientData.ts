@@ -86,8 +86,8 @@ function rowToPatient(r: string[]): Patient | null {
     phone: r[6] ?? '', emergency_contact: r[7] ?? '', emergency_phone: r[8] ?? '',
     address: r[9] ?? '', subdistrict: r[10] ?? '', district: r[11] ?? '',
     blood_type: r[12] ?? '', allergies: r[13] ?? '',
-    conditions: safeJSON<string[]>(r[14], []),
-    status: (r[15] ?? 'active') as Patient['status'],
+    conditions: safeJSON<string[]>(r[14], []).filter((c): c is string => typeof c === 'string'),
+    status: (['active','inactive','critical'].includes(r[15]) ? r[15] : 'active') as Patient['status'],
     lat: parseFloat(r[16] ?? '0') || 0, lng: parseFloat(r[17] ?? '0') || 0,
     created_at: r[18] ?? '', treatments: [],
   };
