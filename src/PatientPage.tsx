@@ -10,7 +10,7 @@ import {
   addTreatment,
   deleteTreatment,
 } from './lib/patientData';
-import type { Patient, NewPatientInput } from './patientTypes'; // 💡 จุดแก้ไข 1: เอา NewTreatmentInput ที่ไม่มีอยู่ออก
+import type { Patient, NewPatientInput } from './patientTypes';
 import PatientDashboard   from './PatientDashboard';
 import PatientList        from './PatientList';
 import PatientMap         from './PatientMap';
@@ -19,7 +19,6 @@ import PatientFormModal   from './PatientFormModal';
 import TreatmentFormModal from './TreatmentFormModal';
 import './Patient.css';
 
-// 💡 จุดแก้ไข 1.2: สร้างโครงสร้างประเภทข้อมูลการรักษาใหม่ไว้ตรงนี้เลยเพื่อแก้เส้นแดงช่วง import
 type NewTreatmentInput = {
   patient_id: string;
   date: string;
@@ -31,20 +30,26 @@ type NewTreatmentInput = {
 
 type PatientSubPage = 'dashboard' | 'list' | 'map';
 
-const NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
-  { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
-  { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย' },
-  { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
-];
+// ✅ user เห็นแค่ภาพรวม, admin เห็นทุกเมนู
+const getNavItems = (role: 'admin' | 'user') => {
+  const all: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
+    { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
+    { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย' },
+    { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
+  ];
+  if (role === 'user') return all.filter((i) => i.id === 'dashboard');
+  return all;
+};
 
 interface PatientPageProps {
   onLogout?: () => void;
-  onLogin?: () => void;   
+  onLogin?: () => void;
   currentUser?: string;
-  isLoggedIn?: boolean;   
+  isLoggedIn?: boolean;
+  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
 }
 
-export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn }: PatientPageProps) {
+export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn, userRole = 'user' }: PatientPageProps) {
   const [subPage, setSubPage] = useState<PatientSubPage>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
 
@@ -58,6 +63,8 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
   const [mapSelectedId, setMapSelectedId]     = useState<string | null>(null);
   const [mapPickedLat, setMapPickedLat]       = useState<number | undefined>();
   const [mapPickedLng, setMapPickedLng]       = useState<number | undefined>();
+
+  const navItems = getNavItems(userRole);
 
   // ─── Load ─────────────────────────────────────────────────────────────────
   const loadPatients = useCallback(async () => {
@@ -117,10 +124,8 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         : p,
       ),
     );
-    
-    // 💡 จุดแก้ไข 2: ปรับฟังก์ชันตรวจสอบค่าป้องกันไม่ให้ TypeScript บ่นเรื่องค่า null (แก้รูปที่ 494)
     setSelectedPatient((prev) => {
-      if (!prev) return null; 
+      if (!prev) return null;
       return prev.id === input.patient_id
         ? { ...prev, treatments: [record, ...(prev.treatments ?? [])] }
         : prev;
@@ -154,7 +159,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
 
         <nav className="ps-nav">
           <div className="ps-nav-label">เมนูหลัก</div>
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.id}
               className={`ps-nav-btn ${subPage === item.id ? 'active' : ''}`}
@@ -203,15 +208,20 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         {subPage === 'dashboard' && (
           <PatientDashboard
             patients={safePatients}
-            onSelectPatient={(pt) => { setSelectedPatient(pt); setSubPage('list'); }}
+            onSelectPatient={(pt) => {
+              // ✅ user กดดูผู้ป่วยได้ แต่ไม่มีเมนู list ให้ไป
+              if (userRole === 'admin') setSubPage('list');
+              setSelectedPatient(pt);
+            }}
             onAddPatient={() => setShowAddModal(true)}
             currentUser={currentUser}
             isLoggedIn={isLoggedIn}
+            userRole={userRole}  // ✅ ส่งลงไป
             onLogin={onLogin}
             onLogout={onLogout}
           />
         )}
-        {subPage === 'list' && (
+        {subPage === 'list' && userRole === 'admin' && (
           <PatientList
             patients={safePatients}
             loading={loading}
@@ -222,7 +232,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
             onRefresh={() => void loadPatients()}
           />
         )}
-        {subPage === 'map' && (
+        {subPage === 'map' && userRole === 'admin' && (
           <PatientMap
             patients={safePatients}
             selectedId={mapSelectedId}
@@ -249,23 +259,25 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         />
       )}
 
-      {/* ══ Modals ═══════════════════════════════════════════════════════════ */}
-      <PatientFormModal
-        isOpen={showAddModal}
-        onClose={() => { setShowAddModal(false); setEditTarget(null); setMapPickedLat(undefined); setMapPickedLng(undefined); }}
-        onSave={(input) => handleSavePatient(input)}
-        editTarget={editTarget}
-        initialLat={mapPickedLat}
-        initialLng={mapPickedLng}
-      />
-      
-      {/* 💡 จุดแก้ไข 3: ใส่เครื่องหมาย ! (Non-null assertion) เพื่อบอกระบบว่าฟอร์มนี้จะเปิดเมื่อมีคนไข้แน่นอน (แก้รูปที่ 495) */}
-      <TreatmentFormModal
-        isOpen={Boolean(treatmentTarget)}
-        onClose={() => setTreatmentTarget(null)}
-        patient={treatmentTarget!}
-        onSave={(input) => handleAddTreatment(input as any)}
-      />
+      {/* ══ Modals (admin only) ═══════════════════════════════════════════════ */}
+      {userRole === 'admin' && (
+        <>
+          <PatientFormModal
+            isOpen={showAddModal}
+            onClose={() => { setShowAddModal(false); setEditTarget(null); setMapPickedLat(undefined); setMapPickedLng(undefined); }}
+            onSave={(input) => handleSavePatient(input)}
+            editTarget={editTarget}
+            initialLat={mapPickedLat}
+            initialLng={mapPickedLng}
+          />
+          <TreatmentFormModal
+            isOpen={Boolean(treatmentTarget)}
+            onClose={() => setTreatmentTarget(null)}
+            patient={treatmentTarget!}
+            onSave={(input) => handleAddTreatment(input as any)}
+          />
+        </>
+      )}
     </div>
   );
 }

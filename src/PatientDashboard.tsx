@@ -1,6 +1,6 @@
 // src/PatientDashboard.tsx
 import { useMemo, useState } from 'react';
-import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut, UserCheck } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut, UserCheck, ShieldCheck, User } from 'lucide-react';
 import type { Patient } from './patientTypes';
 import { PATIENT_STATUS_CONFIG, calcAge, avatarColor, initials } from './patientTypes';
 import './Patient.css';
@@ -10,9 +10,10 @@ interface PatientDashboardProps {
   onSelectPatient: (patient: Patient) => void;
   onAddPatient: () => void;
   currentUser?: string;
-  isLoggedIn?: boolean;   
-  onLogin?: () => void;   
-  onLogout?: () => void;  
+  isLoggedIn?: boolean;
+  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 export default function PatientDashboard({
@@ -21,10 +22,12 @@ export default function PatientDashboard({
   onAddPatient,
   currentUser,
   isLoggedIn,
+  userRole = 'user',
   onLogin,
   onLogout,
 }: PatientDashboardProps) {
-  // 1. ตัวคำนวณนับสถิติตามระบบสถานะใหม่
+  const isAdmin = userRole === 'admin';
+
   const counts = useMemo(() => ({
     total:    patients.length,
     general:  patients.filter((p) => p.status === 'general').length,
@@ -33,16 +36,13 @@ export default function PatientDashboard({
     finished: patients.filter((p) => p.status === 'finished').length,
   }), [patients]);
 
-  // กลุ่มผู้ป่วยที่อยู่ระหว่างการดูแลรักษาทั้งหมด (ไม่รวมผู้ป่วยที่จำหน่ายแล้ว)
   const carePatients = useMemo(() =>
     patients.filter((p) => p.status === 'general' || p.status === 'disabled' || p.status === 'elderly'),
     [patients]
   );
 
-  // State สำหรับคุม Dropdown กรองรายชื่อ
   const [listFilter, setListFilter] = useState<'all' | 'general' | 'elderly' | 'disabled'>('all');
 
-  // ตัวแปรกรองข้อมูลผู้ป่วยเพื่อนำไปแสดงผลในรายชื่อการดูแล
   const displayedPatients = useMemo(() => {
     if (listFilter === 'all') return carePatients;
     return carePatients.filter((p) => p.status === listFilter);
@@ -68,13 +68,12 @@ export default function PatientDashboard({
       .slice(0, 5);
   }, [patients]);
 
-  // การ์ดสรุปจำนวนทั้ง 5 ช่องด้านบนหน้าจอ
   const stats = [
-    { label: 'ผู้ป่วยทั้งหมด',  val: counts.total,    icon: <Users size={22} />,        bg: '#eff6ff', ic: '#2563eb' },
-    { label: 'ผู้ป่วยทั่วไป',    val: counts.general,  icon: <UserCheck size={22} />,    bg: '#ecfdf5', ic: '#10b981' },
-    { label: 'ผู้สูงอายุ',     val: counts.elderly,  icon: <AlertTriangle size={22} />, bg: '#fef2f2', ic: '#ef4444' },
-    { label: 'ผู้พิการ',       val: counts.disabled, icon: <CheckCircle size={22} />,   bg: '#ecfdf5', ic: '#0051ff' },
-    { label: 'จำหน่าย',       val: counts.finished, icon: <Archive size={22} />,       bg: '#f8fafc', ic: '#64748b' },
+    { label: 'ผู้ป่วยทั้งหมด', val: counts.total,    icon: <Users size={22} />,        bg: '#eff6ff', ic: '#2563eb' },
+    { label: 'ผู้ป่วยทั่วไป',   val: counts.general,  icon: <UserCheck size={22} />,    bg: '#ecfdf5', ic: '#10b981' },
+    { label: 'ผู้สูงอายุ',      val: counts.elderly,  icon: <AlertTriangle size={22} />, bg: '#fef2f2', ic: '#ef4444' },
+    { label: 'ผู้พิการ',        val: counts.disabled, icon: <CheckCircle size={22} />,   bg: '#ecfdf5', ic: '#0051ff' },
+    { label: 'จำหน่าย',        val: counts.finished, icon: <Archive size={22} />,       bg: '#f8fafc', ic: '#64748b' },
   ];
 
   const userAvatarBg = (name: string) => {
@@ -89,14 +88,18 @@ export default function PatientDashboard({
           <h1 className="pt-page-title">📊 ภาพรวมระบบผู้ป่วย</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <p className="pt-page-sub" style={{ margin: 0 }}>เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
-            <button
-              className="pt-btn pt-btn-primary"
-              onClick={onAddPatient}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
-            >
-              <UserPlus size={15} />
-              + เพิ่มผู้ป่วยใหม่
-            </button>
+
+            {/* ✅ แสดงปุ่มเพิ่มผู้ป่วยเฉพาะ admin */}
+            {isAdmin && (
+              <button
+                className="pt-btn pt-btn-primary"
+                onClick={onAddPatient}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 14px' }}
+              >
+                <UserPlus size={15} />
+                + เพิ่มผู้ป่วยใหม่
+              </button>
+            )}
           </div>
         </div>
 
@@ -113,7 +116,19 @@ export default function PatientDashboard({
                   {currentUser.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</span>
+                    {/* ✅ Badge แสดง role */}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px',
+                      background: isAdmin ? '#eff6ff' : '#f1f5f9',
+                      color: isAdmin ? '#2563eb' : '#64748b',
+                    }}>
+                      {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
+                      {isAdmin ? 'Admin' : 'User'}
+                    </span>
+                  </div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>ออนไลน์</div>
                 </div>
               </div>
@@ -160,18 +175,16 @@ export default function PatientDashboard({
       </div>
 
       <div className="pt-two-col">
-        {/* รายชื่อผู้ป่วยในการดูแลพร้อม Dropdown คัดกรอง */}
         <div className="pt-card">
           <div className="pt-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="pt-card-title">🚨 รายชื่อผู้ป่วยในการดูแล</span>
               <span className="pt-badge-red">{displayedPatients.length} ราย</span>
             </div>
-            
-            <select 
-              className="pt-select" 
+            <select
+              className="pt-select"
               style={{ padding: '4px 30px 4px 12px', fontSize: '13px', borderRadius: '8px', minHeight: '32px' }}
-              value={listFilter} 
+              value={listFilter}
               onChange={(e) => setListFilter(e.target.value as 'all' | 'general' | 'elderly' | 'disabled')}
             >
               <option value="all">ดูทั้งหมด</option>
@@ -180,12 +193,13 @@ export default function PatientDashboard({
               <option value="disabled">ผู้พิการ</option>
             </select>
           </div>
-          
+
           {displayedPatients.length === 0 ? (
             <div className="pt-empty">ไม่มีผู้ป่วยในหมวดหมู่นี้ 🎉</div>
           ) : (
             displayedPatients.map((pt) => (
-              <div key={pt.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
+              <div key={pt.id} className="pt-patient-row" onClick={() => isAdmin && onSelectPatient(pt)}
+                style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
                 <div className="pt-avatar" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
@@ -199,7 +213,6 @@ export default function PatientDashboard({
           )}
         </div>
 
-        {/* นัดใน 14 วัน */}
         <div className="pt-card">
           <div className="pt-card-head">
             <span className="pt-card-title">📅 นัดหมายใน 14 วันข้างหน้า</span>
@@ -209,7 +222,8 @@ export default function PatientDashboard({
             <div className="pt-empty">ไม่มีนัดหมายในช่วงนี้</div>
           ) : (
             upcomingVisits.map(({ patient: pt, treatment: t }) => (
-              <div key={t.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
+              <div key={t.id} className="pt-patient-row" onClick={() => isAdmin && onSelectPatient(pt)}
+                style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
                 <div className="pt-avatar pt-avatar-sm" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
@@ -226,7 +240,6 @@ export default function PatientDashboard({
         </div>
       </div>
 
-      {/* ผู้ป่วยล่าสุด */}
       <div className="pt-card" style={{ marginTop: '20px' }}>
         <div className="pt-card-head">
           <span className="pt-card-title">👥 รายการผู้ป่วยล่าสุด</span>
@@ -244,7 +257,8 @@ export default function PatientDashboard({
             {recentPatients.map((pt) => {
               const sc = PATIENT_STATUS_CONFIG[pt.status];
               return (
-                <tr key={pt.id} onClick={() => onSelectPatient(pt)} className="pt-table-row">
+                <tr key={pt.id} onClick={() => isAdmin && onSelectPatient(pt)}
+                  className="pt-table-row" style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
                   <td>
                     <div className="pt-table-patient">
                       <div className="pt-avatar pt-avatar-sm" style={{ background: avatarColor(pt.first_name) }}>
@@ -252,7 +266,7 @@ export default function PatientDashboard({
                       </div>
                       <div>
                         <div className="pt-patient-name">{pt.first_name} {pt.last_name}</div>
-                        <div className="pt-patient-sub">{pt.phone}</div> {/* แก้จุดนี้: แสดงเบอร์แทน HN เพื่อลบค่าแดงออก */}
+                        <div className="pt-patient-sub">{pt.phone}</div>
                       </div>
                     </div>
                   </td>

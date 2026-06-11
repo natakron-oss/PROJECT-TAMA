@@ -81,15 +81,18 @@ async function clearRow(sheet: string, rowIdx: number): Promise<void> {
 function rowToPatient(r: string[]): Patient | null {
   if (!r[0]?.trim()) return null;
   return {
-    id: r[0], hn: r[1] ?? '', first_name: r[2] ?? '', last_name: r[3] ?? '',
+    id: r[0], first_name: r[2] ?? '', last_name: r[3] ?? '',
     birth_date: r[4] ?? '', gender: (r[5] ?? 'ไม่ระบุ') as Patient['gender'],
     phone: r[6] ?? '', emergency_contact: r[7] ?? '', emergency_phone: r[8] ?? '',
     address: r[9] ?? '', subdistrict: r[10] ?? '', district: r[11] ?? '',
-    blood_type: r[12] ?? '', allergies: r[13] ?? '',
+    allergies: r[13] ?? '',
     conditions: safeJSON<string[]>(r[14], []).filter((c): c is string => typeof c === 'string'),
-    status: (['active','inactive','critical'].includes(r[15]) ? r[15] : 'active') as Patient['status'],
+    // ✅ แก้ไขแล้ว: เปลี่ยนจาก active/inactive/critical เป็น general/disabled/elderly/finished
+    status: (['general', 'disabled', 'elderly', 'finished'].includes(r[15]) ? r[15] : 'general') as Patient['status'],
     lat: parseFloat(r[16] ?? '0') || 0, lng: parseFloat(r[17] ?? '0') || 0,
     created_at: r[18] ?? '', treatments: [],
+    treatment_type: r[19] ?? '',
+    treatments_list: safeJSON<string[]>(r[20], []),
   };
 }
 
@@ -99,7 +102,17 @@ function rowToTreatment(r: string[]): TreatmentRecord | null {
 }
 
 function patientToRow(p: NewPatientInput, id: string, createdAt?: string): string[] {
-  return [id, p.hn ?? '', p.first_name, p.last_name, p.birth_date, p.gender, p.phone ?? '', p.emergency_contact ?? '', p.emergency_phone ?? '', p.address ?? '', p.subdistrict ?? '', p.district ?? '', p.blood_type ?? '', p.allergies ?? '', JSON.stringify(p.conditions ?? []), p.status, String(p.lat), String(p.lng), createdAt ?? new Date().toISOString()];
+  return [
+    id, '', p.first_name, p.last_name, p.birth_date, p.gender,
+    p.phone ?? '', p.emergency_contact ?? '', p.emergency_phone ?? '',
+    p.address ?? '', p.subdistrict ?? '', p.district ?? '', '',
+    p.allergies ?? '', JSON.stringify(p.conditions ?? []),
+    p.status,
+    String(p.lat), String(p.lng),
+    createdAt ?? new Date().toISOString(),
+    p.treatment_type ?? '',
+    JSON.stringify(p.treatments_list ?? []),
+  ];
 }
 
 function treatmentToRow(t: NewTreatmentInput, id: string): string[] {
@@ -113,6 +126,9 @@ function safeJSON<T>(s: string, fb: T): T {
 function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
+const MOCK_PATIENTS: Patient[] = [];
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 export async function fetchPatients(): Promise<Patient[]> {
@@ -135,13 +151,13 @@ export async function fetchPatientById(id: string): Promise<Patient | null> {
 
 export async function createPatient(input: NewPatientInput): Promise<Patient> {
   if (isMockMode()) {
-    const p: Patient = { id: genId('PT'), hn: input.hn ?? genId('HN'), ...input, treatments: [], created_at: new Date().toISOString() };
+    const p: Patient = { id: genId('PT'), ...input, treatments: [], created_at: new Date().toISOString() };
     MOCK_PATIENTS.unshift(p); return p;
   }
   const id = genId('PT');
   const row = patientToRow(input, id);
   await appendRow(PATIENTS_SHEET, row);
-  return { id, hn: input.hn ?? '', ...input, treatments: [], created_at: row[18] };
+  return { id, ...input, treatments: [], created_at: row[18] };
 }
 
 export async function updatePatient(id: string, input: Partial<NewPatientInput>): Promise<void> {
@@ -160,7 +176,6 @@ export async function updatePatient(id: string, input: Partial<NewPatientInput>)
 export async function deletePatient(id: string): Promise<void> {
   if (isMockMode()) { const i = MOCK_PATIENTS.findIndex((p) => p.id === id); if (i !== -1) MOCK_PATIENTS.splice(i, 1); return; }
 
-  // ลบ treatments ก่อน (จากล่างขึ้นบน ไม่งั้น index เลื่อน)
   const tRows = await readSheet(TREATMENTS_SHEET);
   const tIdxs = tRows.slice(1).map((r, i) => r[1] === id ? i : -1).filter((i) => i !== -1).reverse();
   for (const i of tIdxs) await clearRow(TREATMENTS_SHEET, i);
