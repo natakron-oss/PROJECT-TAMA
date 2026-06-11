@@ -13,13 +13,6 @@ interface PatientFormModalProps {
   initialLng?: number;
 }
 
-// 💡 รายการการรักษาทั้ง 10 รูปแบบตามเงื่อนไข
-const TREATMENT_OPTIONS = [
-  'Hot pack', 'Ultrasound', 'Electrical stimulation', 'strengthening',
-  'Traction', 'TENs', 'stretching', 'ambulation',
-  'bicycle ergometer', 'theraputic exercise'
-];
-
 const EMPTY_FORM: NewPatientInput = {
   first_name: '',
   last_name: '',
@@ -36,16 +29,13 @@ const EMPTY_FORM: NewPatientInput = {
   status: 'general', 
   lat: 0,
   lng: 0,
-  // 💡 จุดเพิ่มค่าเริ่มต้นใหม่
-  treatment_type: '',
-  treatments_list: [],
 };
 
 export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, initialLat, initialLng }: PatientFormModalProps) {
-  const [form, setForm]         = useState<NewPatientInput>(EMPTY_FORM);
-  const [condInput, setCondInput] = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
+  const [form, setForm]             = useState<NewPatientInput>(EMPTY_FORM);
+  const [condInput, setCondInput]   = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
   const [coordError, setCoordError] = useState(false);
 
   const isEdit = Boolean(editTarget);
@@ -69,9 +59,6 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
         status:            editTarget.status,
         lat:               editTarget.lat,
         lng:               editTarget.lng,
-        // 💡 ดึงข้อมูลเดิมมาใส่ตอนโหมดแก้ไข
-        treatment_type:    editTarget.treatment_type ?? '',
-        treatments_list:   editTarget.treatments_list ?? [],
       });
     } else {
       setForm({
@@ -88,22 +75,6 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
 
   const set = <K extends keyof NewPatientInput>(key: K, value: NewPatientInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
-
-  // 💡 ฟังก์ชันจัดการการติ๊กถูก Checkbox (จำกัดสูงสุด 4 รายการ)
-  function handleTreatmentCheckbox(item: string) {
-    const currentList = form.treatments_list ?? [];
-    if (currentList.includes(item)) {
-      set('treatments_list', currentList.filter((x) => x !== item));
-      setError('');
-    } else {
-      if (currentList.length >= 4) {
-        setError('❌ สามารถเลือกรายการการรักษาได้สูงสุด 4 รายการเท่านั้นครับ');
-        return;
-      }
-      set('treatments_list', [...currentList, item]);
-      setError('');
-    }
-  }
 
   function addCondition() {
     const val = condInput.trim();
@@ -184,39 +155,6 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
             </div>
           </div>
 
-          {/* 💡 จุดเพิ่มใหม่: ประเภทและรายการกายภาพบำบัด */}
-          <div className="pt-form-section-title" style={{ marginTop: '6px' }}>ข้อมูลทางกายภาพบำบัด</div>
-          <div className="pt-form-row">
-            <div className="pt-form-group">
-              <label className="pt-label">ประเภทการรักษา</label>
-              <select className="pt-select" value={form.treatment_type} onChange={(e) => set('treatment_type', e.target.value)}>
-                <option value="">-- เลือกประเภท --</option>
-                <option value="MS">MS (ระบบกระดูกและกล้ามเนื้อ)</option>
-                <option value="neuro">neuro (ระบบประสาท)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="pt-form-group">
-            <label className="pt-label">รายการการรักษา <span className="pt-optional">(ติ๊กถูกเลือกได้สูงสุด 4 รายการ)</span></label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              {TREATMENT_OPTIONS.map((item) => {
-                const isChecked = (form.treatments_list ?? []).includes(item);
-                return (
-                  <label key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', color: '#334155', cursor: 'pointer', fontWeight: isChecked ? 600 : 400 }}>
-                    <input
-                      type="checkbox"
-                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                      checked={isChecked}
-                      onChange={() => handleTreatmentCheckbox(item)}
-                    />
-                    {item}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
           <div className="pt-form-row">
             <div className="pt-form-group">
               <label className="pt-label">ชื่อ <span className="pt-req">*</span></label>
@@ -280,9 +218,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
           </div>
           <div className="pt-form-row">
             <div className="pt-form-group">
-              <label className="pt-label">
-                ละติจูด <span className="pt-req">*</span>
-              </label>
+              <label className="pt-label">ละติจูด <span className="pt-req">*</span></label>
               <input
                 className={`pt-input${coordError && (form.lat === 0 || !isFinite(form.lat) || form.lat < -90 || form.lat > 90) ? ' pt-input-error' : ''}`}
                 type="number"
@@ -293,9 +229,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
               />
             </div>
             <div className="pt-form-group">
-              <label className="pt-label">
-                ลองจิจูด <span className="pt-req">*</span>
-              </label>
+              <label className="pt-label">ลองจิจูด <span className="pt-req">*</span></label>
               <input
                 className={`pt-input${coordError && (form.lng === 0 || !isFinite(form.lng) || form.lng < -180 || form.lng > 180) ? ' pt-input-error' : ''}`}
                 type="number"
@@ -307,6 +241,7 @@ export default function PatientFormModal({ isOpen, onClose, onSave, editTarget, 
             </div>
           </div>
 
+          {/* ─── โรคประจำตัว ─────────────────────────────────────────── */}
           <div className="pt-form-section-title">โรคประจำตัว</div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input

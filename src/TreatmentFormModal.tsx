@@ -1,7 +1,8 @@
 // src/TreatmentFormModal.tsx
 import { useEffect, useState } from 'react';
 import { X, Save, Calendar, FileText } from 'lucide-react';
-import type { Patient } from './patientTypes';
+import type { Patient, TreatmentType } from './patientTypes';
+import { PROCEDURE_OPTIONS, TREATMENT_TYPE_OPTIONS } from './patientTypes';
 import './Patient.css';
 
 interface TreatmentFormModalProps {
@@ -13,25 +14,32 @@ interface TreatmentFormModalProps {
     date: string;
     doctor: string;
     diagnosis: string;
+    procedure?: string;
     note?: string;
     next_visit?: string;
+    treatment_type?: TreatmentType;
+    treatments_list?: string[];
   }) => Promise<void>;
 }
 
-// สร้างชนิดข้อมูลสำหรับระบุแท็บที่กำลังทำงานอยู่
 type TreatmentTab = 'record' | 'appointment';
 
-export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }: TreatmentFormModalProps) {
-  const [date, setDate]           = useState('');
-  const [doctor, setDoctor]       = useState('');
-  const [diagnosis, setDiagnosis] = useState('');
-  const [note, setNote]           = useState('');
-  const [nextVisit, setNextVisit] = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState('');
+const MAX_TREATMENTS_LIST = 4;
 
-  // 💡 จุดเพิ่ม 1: ตัวแปร State สำหรับสลับหน้าแท็บ (ค่าเริ่มต้นคือหน้าบันทึกการรักษา 'record')
-  const [activeTab, setActiveTab] = useState<TreatmentTab>('record');
+export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }: TreatmentFormModalProps) {
+  const [date, setDate]                     = useState('');
+  const [doctor, setDoctor]                 = useState('');
+  const [diagnosis, setDiagnosis]           = useState('');
+  const [procedure, setProcedure]           = useState('');
+  const [note, setNote]                     = useState('');
+  const [nextVisit, setNextVisit]           = useState('');
+  const [saving, setSaving]                 = useState(false);
+  const [error, setError]                   = useState('');
+  const [activeTab, setActiveTab]           = useState<TreatmentTab>('record');
+
+  // ✅ State ใหม่: treatment_type และ treatments_list ต่อครั้งที่รักษา
+  const [treatmentType, setTreatmentType]   = useState<TreatmentType>('');
+  const [treatmentsList, setTreatmentsList] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,18 +47,30 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
       setDate(today);
       setDoctor('');
       setDiagnosis('');
+      setProcedure('');
       setNote('');
       setNextVisit('');
       setError('');
       setSaving(false);
-      setActiveTab('record'); // รีเซ็ตกลับมาที่แท็บแรกทุกครั้งที่เปิดป๊อปอัป
+      setActiveTab('record');
+      setTreatmentType('');
+      setTreatmentsList([]);
     }
   }, [isOpen]);
+
+  // Toggle รายการใน treatments_list (สูงสุด MAX_TREATMENTS_LIST รายการ)
+  function toggleTreatmentItem(value: string) {
+    setTreatmentsList((prev) => {
+      if (prev.includes(value)) return prev.filter((v) => v !== value);
+      if (prev.length >= MAX_TREATMENTS_LIST) return prev; // ถึงขีดสูงสุดแล้ว
+      return [...prev, value];
+    });
+  }
 
   async function handleSubmit() {
     if (!diagnosis.trim()) {
       setError('กรุณากรอกผลการวินิจฉัย / อาการ ในแท็บข้อมูลการรักษา');
-      setActiveTab('record'); // สลับแท็บกลับไปเพื่อให้เจ้าหน้าที่เห็นช่องที่ลืมกรอก
+      setActiveTab('record');
       return;
     }
     if (!doctor.trim()) {
@@ -67,8 +87,11 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
         date,
         doctor,
         diagnosis,
+        procedure: procedure || undefined,
         note: note.trim() || undefined,
         next_visit: nextVisit || undefined,
+        treatment_type: treatmentType || undefined,
+        treatments_list: treatmentsList.length > 0 ? treatmentsList : undefined,
       });
       onClose();
     } catch (err) {
@@ -83,8 +106,8 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
   return (
     <div className="pt-modal-overlay" onClick={onClose}>
       <div className="pt-modal" style={{ maxWidth: '640px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
-        
-        {/* ส่วนหัวหน้าต่างป๊อปอัป */}
+
+        {/* ส่วนหัว */}
         <div className="pt-modal-header" style={{ background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: 'white', borderBottom: 'none' }}>
           <div className="pt-modal-title" style={{ color: 'white' }}>
             🩺 ติดตามประวัติการรักษา
@@ -94,7 +117,7 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
           </button>
         </div>
 
-        {/* 💡 จุดเพิ่ม 2: เมนูแท็บสำหรับสลับหน้าบันทึกการรักษาและการนัดหมาย (ดึงดีไซน์สากลของระบบมาใช้) */}
+        {/* แท็บ */}
         <div className="pt-detail-tabs" style={{ position: 'static', padding: '0 24px', background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
           <button
             type="button"
@@ -112,11 +135,11 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
           </button>
         </div>
 
-        {/* ส่วนเนื้อหาหลักในป๊อปอัป (ปรับเปลี่ยนตามแท็บที่เลือก) */}
+        {/* เนื้อหา */}
         <div className="pt-modal-body" style={{ minHeight: '340px', paddingTop: '16px' }}>
           {error && <div className="pt-error-msg" style={{ marginBottom: '14px' }}>{error}</div>}
 
-          {/* 📋 แท็บที่ 1: หน้าบันทึกข้อมูลการรักษา */}
+          {/* 📋 แท็บที่ 1: ข้อมูลการรักษา */}
           {activeTab === 'record' && (
             <>
               <div className="pt-form-section-title">ข้อมูลผู้ป่วย</div>
@@ -141,6 +164,88 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
                 </div>
               </div>
 
+              {/* ✅ ประเภทแผนการรักษา (ต่อครั้ง) */}
+              <div className="pt-form-group">
+                <label className="pt-label">ประเภทแผนการรักษา <span className="pt-optional">(เลือกได้ 1 ประเภท)</span></label>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {TREATMENT_TYPE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setTreatmentType(treatmentType === opt.value ? '' : opt.value)}
+                      style={{
+                        padding: '6px 16px',
+                        borderRadius: '20px',
+                        border: `2px solid ${treatmentType === opt.value ? '#6d28d9' : '#e2e8f0'}`,
+                        background: treatmentType === opt.value ? '#f5f3ff' : '#ffffff',
+                        color: treatmentType === opt.value ? '#6d28d9' : '#64748b',
+                        fontWeight: treatmentType === opt.value ? 700 : 400,
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      ⚡ {opt.label} — {opt.labelTh}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ✅ รายการหัตถการที่ใช้ในครั้งนี้ (checkbox, สูงสุด 4) */}
+              <div className="pt-form-group">
+                <label className="pt-label">
+                  รายการหัตถการที่ใช้ครั้งนี้{' '}
+                  <span className="pt-optional">
+                    (เลือกได้สูงสุด {MAX_TREATMENTS_LIST} รายการ — เลือกแล้ว {treatmentsList.length}/{MAX_TREATMENTS_LIST})
+                  </span>
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {PROCEDURE_OPTIONS.map((opt) => {
+                    const checked = treatmentsList.includes(opt.value);
+                    const disabled = !checked && treatmentsList.length >= MAX_TREATMENTS_LIST;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => toggleTreatmentItem(opt.value)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          border: `1.5px solid ${checked ? '#1d4ed8' : '#e2e8f0'}`,
+                          background: checked ? '#eff6ff' : disabled ? '#f8fafc' : '#ffffff',
+                          color: checked ? '#1d4ed8' : disabled ? '#cbd5e1' : '#475569',
+                          fontSize: '12px',
+                          fontWeight: checked ? 600 : 400,
+                          cursor: disabled ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.15s',
+                          opacity: disabled ? 0.5 : 1,
+                        }}
+                      >
+                        {checked ? '✓ ' : ''}{opt.label} — {opt.labelTh}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-form-group">
+                <label className="pt-label">หัตการกายภาพบำบัด (หลัก)</label>
+                <select
+                  className="pt-input"
+                  value={procedure}
+                  onChange={(e) => setProcedure(e.target.value)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">— เลือกหัตการหลัก (ถ้ามี) —</option>
+                  {PROCEDURE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label} — {opt.labelTh}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="pt-form-group">
                 <label className="pt-label">ผลการวินิจฉัย / อาการที่พบ <span className="pt-req">*</span></label>
                 <input className="pt-input" value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="เช่น ความดันปกติ, มีอาการวิงเวียน" />
@@ -153,19 +258,18 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
             </>
           )}
 
-          {/* 📅 แท็บที่ 2: หน้ากำหนดการนัดหมายล่วงหน้า */}
+          {/* 📅 แท็บที่ 2: การนัดหมายล่วงหน้า */}
           {activeTab === 'appointment' && (
             <>
               <div className="pt-form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Calendar size={13} /> กำหนดการติดตามผลครั้งถัดไป
               </div>
-              
+
               <div className="pt-form-group" style={{ marginTop: '6px' }}>
                 <label className="pt-label">วันนัดหมายครั้งต่อไป <span className="pt-optional">(หากไม่มีนัดหมายใหม่ ไม่ต้องระบุข้อมูล)</span></label>
                 <input className="pt-input" type="date" value={nextVisit} onChange={(e) => setNextVisit(e.target.value)} style={{ maxWidth: '320px' }} />
               </div>
 
-              {/* แสดงกล่องสรุปนัดหมาย (Appt Summary) อัตโนมัติเมื่อเจ้าหน้าที่ระบุวันนัดหมายล่วงหน้า */}
               {nextVisit && (
                 <div className="tf-appt-summary" style={{ marginTop: '24px', maxWidth: '100%' }}>
                   <div className="tf-appt-summary-title">📋 สรุปข้อมูลตารางนัดหมายล่วงหน้า</div>
@@ -185,7 +289,7 @@ export default function TreatmentFormModal({ isOpen, onClose, patient, onSave }:
           )}
         </div>
 
-        {/* ส่วนท้ายปุ่มกดดำเนินงาน */}
+        {/* Footer */}
         <div className="pt-modal-footer" style={{ borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
           <button className="pt-btn pt-btn-secondary" onClick={onClose} disabled={saving}>ยกเลิก</button>
           <button className="pt-btn pt-btn-primary" onClick={() => void handleSubmit()} disabled={saving}>

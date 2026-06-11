@@ -8,14 +8,14 @@
 //   VITE_GOOGLE_SA_KEY=-----BEGIN PRIVATE KEY-----\nMII...  (แทน newline ด้วย \n)
 //
 // โครงสร้าง Sheet "patients" (row 1 = header):
-//   A=id | B=hn | C=first_name | D=last_name | E=birth_date | F=gender
-//   G=phone | H=emergency_contact | I=emergency_phone | J=address
-//   K=subdistrict | L=district | M=blood_type | N=allergies
-//   O=conditions(JSON) | P=status | Q=lat | R=lng | S=created_at
+//   A=id | B=first_name | C=last_name | D=birth_date | E=gender
+//   F=phone | G=emergency_contact | H=emergency_phone | I=address
+//   J=subdistrict | K=district | L=allergies | M=conditions
+//   N=status | O=lat | P=lng | Q=created_at | R=treatment_type | S=treatments_list
 //
 // โครงสร้าง Sheet "treatments" (row 1 = header):
 //   A=id | B=patient_id | C=date | D=doctor | E=diagnosis
-//   F=note | G=next_visit | H=created_at
+//   F=note | G=next_visit | H=created_at | I=procedure
 
 import type { Patient, NewPatientInput, NewTreatmentInput, TreatmentRecord } from '../patientTypes';
 
@@ -81,31 +81,36 @@ async function clearRow(sheet: string, rowIdx: number): Promise<void> {
 function rowToPatient(r: string[]): Patient | null {
   if (!r[0]?.trim()) return null;
   return {
-    id: r[0], first_name: r[2] ?? '', last_name: r[3] ?? '',
-    birth_date: r[4] ?? '', gender: (r[5] ?? 'ไม่ระบุ') as Patient['gender'],
-    phone: r[6] ?? '', emergency_contact: r[7] ?? '', emergency_phone: r[8] ?? '',
-    address: r[9] ?? '', subdistrict: r[10] ?? '', district: r[11] ?? '',
-    allergies: r[13] ?? '',
-    conditions: safeJSON<string[]>(r[14], []).filter((c): c is string => typeof c === 'string'),
-    // ✅ แก้ไขแล้ว: เปลี่ยนจาก active/inactive/critical เป็น general/disabled/elderly/finished
-    status: (['general', 'disabled', 'elderly', 'finished'].includes(r[15]) ? r[15] : 'general') as Patient['status'],
-    lat: parseFloat(r[16] ?? '0') || 0, lng: parseFloat(r[17] ?? '0') || 0,
-    created_at: r[18] ?? '', treatments: [],
-    treatment_type: r[19] ?? '',
-    treatments_list: safeJSON<string[]>(r[20], []),
+    id: r[0], first_name: r[1] ?? '', last_name: r[2] ?? '',
+    birth_date: r[3] ?? '', gender: (r[4] ?? 'ไม่ระบุ') as Patient['gender'],
+    phone: r[5] ?? '', emergency_contact: r[6] ?? '', emergency_phone: r[7] ?? '',
+    address: r[8] ?? '', subdistrict: r[9] ?? '', district: r[10] ?? '',
+    allergies: r[11] ?? '',
+    conditions: safeJSON<string[]>(r[12], []).filter((c): c is string => typeof c === 'string'),
+    status: (['general', 'disabled', 'elderly', 'finished'].includes(r[13]) ? r[13] : 'general') as Patient['status'],
+    lat: parseFloat(r[14] ?? '0') || 0, lng: parseFloat(r[15] ?? '0') || 0,
+    created_at: r[16] ?? '', treatments: [],
+    treatment_type: r[17] ?? '',
+    treatments_list: safeJSON<string[]>(r[18], []),
   };
 }
 
 function rowToTreatment(r: string[]): TreatmentRecord | null {
   if (!r[0]?.trim()) return null;
-  return { id: r[0], patient_id: r[1] ?? '', date: r[2] ?? '', doctor: r[3] ?? '', diagnosis: r[4] ?? '', note: r[5] ?? '', next_visit: r[6] ?? '', created_at: r[7] ?? '' };
+  return {
+    id: r[0], patient_id: r[1] ?? '', date: r[2] ?? '',
+    doctor: r[3] ?? '', diagnosis: r[4] ?? '',
+    note: r[5] ?? '', next_visit: r[6] ?? '',
+    created_at: r[7] ?? '',
+    procedure: r[8] ?? '',
+  };
 }
 
 function patientToRow(p: NewPatientInput, id: string, createdAt?: string): string[] {
   return [
-    id, '', p.first_name, p.last_name, p.birth_date, p.gender,
+    id, p.first_name, p.last_name, p.birth_date, p.gender,
     p.phone ?? '', p.emergency_contact ?? '', p.emergency_phone ?? '',
-    p.address ?? '', p.subdistrict ?? '', p.district ?? '', '',
+    p.address ?? '', p.subdistrict ?? '', p.district ?? '',
     p.allergies ?? '', JSON.stringify(p.conditions ?? []),
     p.status,
     String(p.lat), String(p.lng),
@@ -116,7 +121,12 @@ function patientToRow(p: NewPatientInput, id: string, createdAt?: string): strin
 }
 
 function treatmentToRow(t: NewTreatmentInput, id: string): string[] {
-  return [id, t.patient_id, t.date, t.doctor ?? '', t.diagnosis, t.note ?? '', t.next_visit ?? '', new Date().toISOString()];
+  return [
+    id, t.patient_id, t.date, t.doctor ?? '', t.diagnosis,
+    t.note ?? '', t.next_visit ?? '',
+    new Date().toISOString(),
+    t.procedure ?? '',
+  ];
 }
 
 function safeJSON<T>(s: string, fb: T): T {

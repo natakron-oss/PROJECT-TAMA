@@ -1,6 +1,6 @@
 // src/PatientDetail.tsx
 import { useState } from 'react';
-import { X, Edit, Trash2, MapPin, Phone, Heart, AlertCircle, User, Activity } from 'lucide-react';
+import { X, Edit, Trash2, MapPin, Phone, Heart, AlertCircle, User } from 'lucide-react';
 import type { Patient, TreatmentRecord } from './patientTypes';
 import {
   PATIENT_STATUS_CONFIG,
@@ -8,6 +8,8 @@ import {
   getConditionColor,
   avatarColor,
   initials,
+  PROCEDURE_OPTIONS,
+  TREATMENT_TYPE_OPTIONS,
 } from './patientTypes';
 import './Patient.css';
 
@@ -84,37 +86,6 @@ export default function PatientDetail({
                   <InfoItem label="อายุ"      value={`${age} ปี`} />
                   <InfoItem label="เพศ"       value={patient.gender} />
                   <InfoItem label="วันเกิด"   value={new Date(patient.birth_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} />
-                </div>
-              </section>
-
-              {/* 💡 จุดเพิ่มใหม่: ข้อมูลทางกายภาพบำบัดและการบำบัดฟื้นฟู */}
-              <section className="pt-detail-section">
-                <div className="pt-section-title"><Activity size={13} /> ข้อมูลทางกายภาพบำบัด</div>
-                <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>ประเภทแผนการรักษา:</div>
-                    {patient.treatment_type ? (
-                      <span className="pt-blood-badge" style={{ background: '#f5f3ff', color: '#6d28d9', fontSize: '13px', display: 'inline-block', marginTop: '4px', padding: '4px 12px' }}>
-                        ⚡ {patient.treatment_type === 'MS' ? 'MS (ระบบกระดูกและกล้ามเนื้อ)' : 'neuro (ระบบประสาท)'}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '13px', color: '#94a3b8' }}>ยังไม่ได้ระบุประเภท</span>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, marginBottom: '4px' }}>รายการหัตถการ / วิธีการรักษาที่ใช้:</div>
-                    {patient.treatments_list && patient.treatments_list.length > 0 ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                        {patient.treatments_list.map((item) => (
-                          <span key={item} className="pt-condition-tag" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '3px 8px' }}>
-                            ✓ {item}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '13px', color: '#94a3b8' }}>ยังไม่มีรายการบำบัดที่ระบุ</span>
-                    )}
-                  </div>
                 </div>
               </section>
 
@@ -234,6 +205,46 @@ export default function PatientDetail({
                 <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0f172a', marginTop: '6px', lineHeight: '1.4' }}>{selectedTreatment.diagnosis}</div>
               </div>
 
+              {selectedTreatment.treatment_type && (() => {
+                const typeOpt = TREATMENT_TYPE_OPTIONS.find(o => o.value === selectedTreatment.treatment_type);
+                return (
+                  <div style={{ background: '#f5f3ff', padding: '12px', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                    <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 700, marginBottom: '4px' }}>ประเภทแผนการรักษา</div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#4c1d95' }}>
+                      ⚡ {typeOpt ? `${typeOpt.label} — ${typeOpt.labelTh}` : selectedTreatment.treatment_type}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {selectedTreatment.treatments_list && selectedTreatment.treatments_list.length > 0 && (
+                <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700, marginBottom: '8px' }}>รายการหัตถการที่ใช้ครั้งนี้</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedTreatment.treatments_list.map((item) => {
+                      const opt = PROCEDURE_OPTIONS.find(o => o.value === item);
+                      return (
+                        <span key={item} style={{ background: '#ffffff', color: '#1d4ed8', fontSize: '12px', padding: '3px 10px', borderRadius: '16px', border: '1px solid #bfdbfe', fontWeight: 500 }}>
+                          ✓ {opt ? `${opt.label} — ${opt.labelTh}` : item}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {selectedTreatment.procedure && (() => {
+                const opt = PROCEDURE_OPTIONS.find(o => o.value === selectedTreatment.procedure);
+                return (
+                  <div style={{ background: '#f5f3ff', padding: '12px', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                    <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 700, marginBottom: '4px' }}>หัตการกายภาพบำบัด</div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#4c1d95' }}>
+                      🏥 {opt ? `${opt.label} — ${opt.labelTh}` : selectedTreatment.procedure}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {selectedTreatment.note && (
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '4px' }}>บันทึกเพิ่มเติม / การสั่งยา</div>
@@ -302,6 +313,37 @@ function TreatmentCard({
         )}
       </div>
       <div className="pt-treatment-diag">{t.diagnosis}</div>
+      {/* ประเภทการรักษา */}
+      {t.treatment_type && (() => {
+        const typeOpt = TREATMENT_TYPE_OPTIONS.find(o => o.value === t.treatment_type);
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '5px', background: '#f5f3ff', color: '#6d28d9', fontSize: '12px', padding: '3px 10px', borderRadius: '20px', border: '1px solid #ddd6fe' }}>
+            ⚡ {typeOpt ? `${typeOpt.label} — ${typeOpt.labelTh}` : t.treatment_type}
+          </div>
+        );
+      })()}
+      {/* หัตถการหลัก */}
+      {t.procedure && (() => {
+        const opt = PROCEDURE_OPTIONS.find(o => o.value === t.procedure);
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '5px', background: '#f5f3ff', color: '#6d28d9', fontSize: '12px', padding: '3px 10px', borderRadius: '20px', border: '1px solid #ddd6fe' }}>
+            🏥 {opt ? `${opt.label} — ${opt.labelTh}` : t.procedure}
+          </div>
+        );
+      })()}
+      {/* รายการหัตถการที่ใช้ */}
+      {t.treatments_list && t.treatments_list.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '5px' }}>
+          {t.treatments_list.map((item) => {
+            const opt = PROCEDURE_OPTIONS.find(o => o.value === item);
+            return (
+              <span key={item} style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '11px', padding: '2px 8px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                ✓ {opt ? opt.labelTh : item}
+              </span>
+            );
+          })}
+        </div>
+      )}
       {t.note && <div className="pt-treatment-note" style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{t.note}</div>}
       {t.next_visit && (
         <div className="pt-treatment-next">
