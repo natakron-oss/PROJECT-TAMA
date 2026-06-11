@@ -1,6 +1,7 @@
 // src/PatientPage.tsx
 import { useCallback, useEffect, useState } from 'react';
-import { LayoutDashboard, Users, Map, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, Map } from 'lucide-react';
+import logoImg from './assets/logo.jpg';
 import { isSupabaseEnabled } from './lib/supabase';
 import {
   fetchPatients,
@@ -10,7 +11,7 @@ import {
   addTreatment,
   deleteTreatment,
 } from './lib/patientData';
-import type { Patient, NewPatientInput } from './patientTypes';
+import type { Patient, NewPatientInput, TreatmentType } from './patientTypes';
 import PatientDashboard   from './PatientDashboard';
 import PatientList        from './PatientList';
 import PatientMap         from './PatientMap';
@@ -24,13 +25,15 @@ type NewTreatmentInput = {
   date: string;
   doctor: string;
   diagnosis: string;
+  procedure?: string;
   note?: string;
   next_visit?: string;
+  treatment_type?: TreatmentType;
+  treatments_list?: string[];
 };
 
 type PatientSubPage = 'dashboard' | 'list' | 'map';
 
-// ✅ user เห็นแค่ภาพรวม, admin เห็นทุกเมนู
 const getNavItems = (role: 'admin' | 'user') => {
   const all: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
     { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
@@ -46,7 +49,7 @@ interface PatientPageProps {
   onLogin?: () => void;
   currentUser?: string;
   isLoggedIn?: boolean;
-  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
+  userRole?: 'admin' | 'user';
 }
 
 export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn, userRole = 'user' }: PatientPageProps) {
@@ -148,11 +151,11 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
       {/* ══ Sidebar ══════════════════════════════════════════════════════════ */}
       <aside className="ps-sidebar">
         <div className="ps-brand">
-          <div className="ps-brand-icon">
-            <Activity size={22} color="white" />
+          <div className="ps-brand-icon" style={{ background: 'none', padding: 0, overflow: 'hidden' }}>
+            <img src={logoImg} alt="logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '12px' }} />
           </div>
           <div>
-            <div className="ps-brand-name">ระบบผู้ป่วย</div>
+            <div className="ps-brand-name">SANPAKWAN SMART REHAB CENTER</div>
             <div className="ps-brand-sub">เทศบาลตำบลสันผักหวาน</div>
           </div>
         </div>
@@ -209,14 +212,13 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
           <PatientDashboard
             patients={safePatients}
             onSelectPatient={(pt) => {
-              // ✅ user กดดูผู้ป่วยได้ แต่ไม่มีเมนู list ให้ไป
               if (userRole === 'admin') setSubPage('list');
               setSelectedPatient(pt);
             }}
             onAddPatient={() => setShowAddModal(true)}
             currentUser={currentUser}
             isLoggedIn={isLoggedIn}
-            userRole={userRole}  // ✅ ส่งลงไป
+            userRole={userRole}
             onLogin={onLogin}
             onLogout={onLogout}
           />
@@ -274,7 +276,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
             isOpen={Boolean(treatmentTarget)}
             onClose={() => setTreatmentTarget(null)}
             patient={treatmentTarget!}
-            onSave={(input) => handleAddTreatment(input as any)}
+            onSave={(input) => handleAddTreatment(input)}
           />
         </>
       )}
