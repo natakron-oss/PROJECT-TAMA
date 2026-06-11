@@ -206,7 +206,7 @@ export default function PatientDashboard({
             <span className="pt-badge-blue">{upcomingVisits.length} ราย</span>
           </div>
           {upcomingVisits.length === 0 ? (
-            <div className="pt-empty">ไม่มีนัดหมายในช่วงนี้</div>
+            <div className="pt-empty">ไม่มีนัดหมายในช่วงเวลานี้</div>
           ) : (
             upcomingVisits.map(({ patient: pt, treatment: t }) => (
               <div key={t.id} className="pt-patient-row" onClick={() => onSelectPatient(pt)}>
