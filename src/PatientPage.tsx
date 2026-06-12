@@ -34,25 +34,21 @@ type NewTreatmentInput = {
 
 type PatientSubPage = 'dashboard' | 'list' | 'map';
 
-const getNavItems = (role: 'admin' | 'user') => {
-  const all: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
-    { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
-    { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย' },
-    { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
-  ];
-  if (role === 'user') return all.filter((i) => i.id === 'dashboard');
-  return all;
-};
+// เมนูทั้งหมด — แสดงเฉพาะ dashboard ถ้ายังไม่ login
+const ALL_NAV_ITEMS: { id: PatientSubPage; icon: React.ReactNode; label: string }[] = [
+  { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: 'ภาพรวม' },
+  { id: 'list',      icon: <Users size={18} />,           label: 'รายชื่อผู้ป่วย' },
+  { id: 'map',       icon: <Map size={18} />,             label: 'แผนที่ผู้ป่วย' },
+];
 
 interface PatientPageProps {
   onLogout?: () => void;
   onLogin?: () => void;
   currentUser?: string;
   isLoggedIn?: boolean;
-  userRole?: 'admin' | 'user';
 }
 
-export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn, userRole = 'user' }: PatientPageProps) {
+export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn }: PatientPageProps) {
   const [subPage, setSubPage] = useState<PatientSubPage>('dashboard');
   const [patients, setPatients] = useState<Patient[]>([]);
 
@@ -67,7 +63,15 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
   const [mapPickedLat, setMapPickedLat]       = useState<number | undefined>();
   const [mapPickedLng, setMapPickedLng]       = useState<number | undefined>();
 
-  const navItems = getNavItems(userRole);
+  // ถ้า logout อยู่ที่หน้าอื่น ให้กลับมา dashboard
+  useEffect(() => {
+    if (!isLoggedIn) setSubPage('dashboard');
+  }, [isLoggedIn]);
+
+  // เมนูที่เห็นได้ขึ้นอยู่กับสถานะ login
+  const navItems = isLoggedIn
+    ? ALL_NAV_ITEMS
+    : ALL_NAV_ITEMS.filter((i) => i.id === 'dashboard');
 
   // ─── Load ─────────────────────────────────────────────────────────────────
   const loadPatients = useCallback(async () => {
@@ -212,18 +216,16 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
           <PatientDashboard
             patients={safePatients}
             onSelectPatient={(pt) => {
-              if (userRole === 'admin') setSubPage('list');
-              setSelectedPatient(pt);
+              if (isLoggedIn) { setSubPage('list'); setSelectedPatient(pt); }
             }}
-            onAddPatient={() => setShowAddModal(true)}
+            onAddPatient={() => { if (isLoggedIn) setShowAddModal(true); }}
             currentUser={currentUser}
             isLoggedIn={isLoggedIn}
-            userRole={userRole}
             onLogin={onLogin}
             onLogout={onLogout}
           />
         )}
-        {subPage === 'list' && userRole === 'admin' && (
+        {subPage === 'list' && isLoggedIn && (
           <PatientList
             patients={safePatients}
             loading={loading}
@@ -234,7 +236,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
             onRefresh={() => void loadPatients()}
           />
         )}
-        {subPage === 'map' && userRole === 'admin' && (
+        {subPage === 'map' && isLoggedIn && (
           <PatientMap
             patients={safePatients}
             selectedId={mapSelectedId}
@@ -249,8 +251,8 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         )}
       </div>
 
-      {/* ══ Detail Panel ═════════════════════════════════════════════════════ */}
-      {selectedPatient && (
+      {/* ══ Detail Panel — เฉพาะ login ═══════════════════════════════════════ */}
+      {isLoggedIn && selectedPatient && (
         <PatientDetail
           patient={selectedPatient}
           onClose={() => setSelectedPatient(null)}
@@ -261,8 +263,8 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
         />
       )}
 
-      {/* ══ Modals (admin only) ═══════════════════════════════════════════════ */}
-      {userRole === 'admin' && (
+      {/* ══ Modals — เฉพาะ login ══════════════════════════════════════════════ */}
+      {isLoggedIn && (
         <>
           <PatientFormModal
             isOpen={showAddModal}

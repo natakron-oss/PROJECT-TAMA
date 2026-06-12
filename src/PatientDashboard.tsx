@@ -1,6 +1,6 @@
 // src/PatientDashboard.tsx
 import { useMemo, useState } from 'react';
-import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut, UserCheck, ShieldCheck, User } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Archive, UserPlus, LogIn, LogOut, UserCheck } from 'lucide-react';
 import type { Patient } from './patientTypes';
 import { PATIENT_STATUS_CONFIG, calcAge, avatarColor, initials } from './patientTypes';
 import './Patient.css';
@@ -11,7 +11,6 @@ interface PatientDashboardProps {
   onAddPatient: () => void;
   currentUser?: string;
   isLoggedIn?: boolean;
-  userRole?: 'admin' | 'user'; // ✅ เพิ่ม
   onLogin?: () => void;
   onLogout?: () => void;
 }
@@ -22,12 +21,9 @@ export default function PatientDashboard({
   onAddPatient,
   currentUser,
   isLoggedIn,
-  userRole = 'user',
   onLogin,
   onLogout,
 }: PatientDashboardProps) {
-  const isAdmin = userRole === 'admin';
-
   const counts = useMemo(() => ({
     total:    patients.length,
     general:  patients.filter((p) => p.status === 'general').length,
@@ -89,8 +85,8 @@ export default function PatientDashboard({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <p className="pt-page-sub" style={{ margin: 0 }}>เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
 
-            {/* ✅ แสดงปุ่มเพิ่มผู้ป่วยเฉพาะ admin */}
-            {isAdmin && (
+            {/* ปุ่มเพิ่มผู้ป่วย — แสดงเฉพาะเมื่อ login */}
+            {isLoggedIn && (
               <button
                 className="pt-btn pt-btn-primary"
                 onClick={onAddPatient}
@@ -116,23 +112,10 @@ export default function PatientDashboard({
                   {currentUser.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</span>
-                    {/* ✅ Badge แสดง role */}
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '3px',
-                      fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px',
-                      background: isAdmin ? '#eff6ff' : '#f1f5f9',
-                      color: isAdmin ? '#2563eb' : '#64748b',
-                    }}>
-                      {isAdmin ? <ShieldCheck size={11} /> : <User size={11} />}
-                      {isAdmin ? 'Admin' : 'User'}
-                    </span>
-                  </div>
+                  <span style={{ fontWeight: 600, fontSize: '14px', color: '#1e293b' }}>{currentUser}</span>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>ออนไลน์</div>
                 </div>
               </div>
-
               <button
                 onClick={onLogout}
                 style={{
@@ -198,8 +181,12 @@ export default function PatientDashboard({
             <div className="pt-empty">ไม่มีผู้ป่วยในหมวดหมู่นี้ 🎉</div>
           ) : (
             displayedPatients.map((pt) => (
-              <div key={pt.id} className="pt-patient-row" onClick={() => isAdmin && onSelectPatient(pt)}
-                style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
+              <div
+                key={pt.id}
+                className="pt-patient-row"
+                onClick={() => isLoggedIn && onSelectPatient(pt)}
+                style={{ cursor: isLoggedIn ? 'pointer' : 'default' }}
+              >
                 <div className="pt-avatar" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
@@ -222,8 +209,12 @@ export default function PatientDashboard({
             <div className="pt-empty">ไม่มีนัดหมายในช่วงนี้</div>
           ) : (
             upcomingVisits.map(({ patient: pt, treatment: t }) => (
-              <div key={t.id} className="pt-patient-row" onClick={() => isAdmin && onSelectPatient(pt)}
-                style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
+              <div
+                key={t.id}
+                className="pt-patient-row"
+                onClick={() => isLoggedIn && onSelectPatient(pt)}
+                style={{ cursor: isLoggedIn ? 'pointer' : 'default' }}
+              >
                 <div className="pt-avatar pt-avatar-sm" style={{ background: avatarColor(pt.first_name) }}>
                   {initials(pt.first_name, pt.last_name)}
                 </div>
@@ -257,8 +248,12 @@ export default function PatientDashboard({
             {recentPatients.map((pt) => {
               const sc = PATIENT_STATUS_CONFIG[pt.status];
               return (
-                <tr key={pt.id} onClick={() => isAdmin && onSelectPatient(pt)}
-                  className="pt-table-row" style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
+                <tr
+                  key={pt.id}
+                  onClick={() => isLoggedIn && onSelectPatient(pt)}
+                  className="pt-table-row"
+                  style={{ cursor: isLoggedIn ? 'pointer' : 'default' }}
+                >
                   <td>
                     <div className="pt-table-patient">
                       <div className="pt-avatar pt-avatar-sm" style={{ background: avatarColor(pt.first_name) }}>
