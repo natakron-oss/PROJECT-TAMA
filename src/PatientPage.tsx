@@ -156,7 +156,7 @@ export default function PatientPage({ onLogout, onLogin, currentUser, isLoggedIn
       <aside className="ps-sidebar">
         <div className="ps-brand">
           <div className="ps-brand-icon" style={{ background: 'none', padding: 0, overflow: 'hidden' }}>
-            <img src={logoImg} alt="logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '12px' }} />
+            <img src={logoImg} alt="logo" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '50%' }} />
           </div>
           <div>
             <div className="ps-brand-name">SANPAKWAN SMART REHAB CENTER</div>

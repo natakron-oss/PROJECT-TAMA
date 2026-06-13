@@ -85,7 +85,6 @@ export default function PatientDashboard({
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <p className="pt-page-sub" style={{ margin: 0 }}>เทศบาลตำบลสันผักหวาน — ข้อมูล ณ วันนี้</p>
 
-            {/* ปุ่มเพิ่มผู้ป่วย — แสดงเฉพาะเมื่อ login */}
             {isLoggedIn && (
               <button
                 className="pt-btn pt-btn-primary"
@@ -121,8 +120,8 @@ export default function PatientDashboard({
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
                   padding: '7px 14px', borderRadius: '8px',
-                  background: 'transparent', border: '1px solid #e2e8f0',
-                  color: '#64748b', cursor: 'pointer', fontSize: '13px',
+                  background: 'transparent', border: '1px solid #fbcfe8',
+                  color: '#be185d', cursor: 'pointer', fontSize: '13px',
                 }}
               >
                 <LogOut size={14} /> ออกจากระบบ
@@ -134,9 +133,10 @@ export default function PatientDashboard({
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '8px 18px', borderRadius: '8px',
-                background: '#2563eb', color: 'white',
-                border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #db2777, #be185d)',
+                color: 'white', border: 'none', cursor: 'pointer',
                 fontWeight: 600, fontSize: '14px',
+                boxShadow: '0 4px 14px rgba(219,39,119,0.35)',
               }}
             >
               <LogIn size={15} /> เข้าสู่ระบบ
